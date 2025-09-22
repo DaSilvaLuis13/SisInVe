@@ -7,66 +7,64 @@ import { useNavigate } from "react-router-dom";
 Formulario de consulta/listado de clientes con barra de búsqueda
 */
 
-function ConsultaClientes() {
-  const [clientes, setClientes] = useState([]);
+function ConsultaProveedores() {
+  const [proveedores, setProveedores] = useState([]);
   const [filtro, setFiltro] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchClientes = async () => {
+    const fetchProveedores = async () => {
       const { data, error } = await supabase
-        .from("Clientes")
+        .from("Proveedores")
         .select("*")
         .order('id', { ascending: true });
 
       if (error) {
-        console.error("Error al cargar clientes:", error);
+        console.error("Error al cargar proveedores:", error);
       } else {
-        setClientes(data);
+        setProveedores(data);
       }
     };
 
-    fetchClientes();
+    fetchProveedores();
   }, []);
 
-  const cargarCliente = (cliente) => {
-    navigate("/clientes", { state: { cliente } });
+  const cargarProveedor = (proveedor) => {
+    navigate("/proveedores", { state: { proveedor } });
   };
 
-  const eliminarCliente = async (id) => {
+  const eliminarProveedor = async (id) => {
     if (!id) return;
 
     try {
       const { data, error } = await supabase
-        .from("Clientes")
+        .from("Proveedores")
         .delete()
         .eq('id', id);
 
       if (error) throw error;
 
-      setClientes(prev => prev.filter(cliente => cliente.id !== id));
-      console.log("Cliente eliminado:", data);
+      setProveedores(prev => prev.filter(proveedor => proveedor.id !== id));
+      console.log("Proveedor eliminado:", data);
     } catch (error) {
       console.log(error);
     }
   };
 
   // Filtrar clientes según el texto del input
-  const clientesFiltrados = clientes.filter(c =>
-    c.nombres.toLowerCase().includes(filtro.toLowerCase()) ||
-    c.apellido_paterno.toLowerCase().includes(filtro.toLowerCase()) ||
-    c.apellido_materno.toLowerCase().includes(filtro.toLowerCase())
+  const proveedoresFiltrados = proveedores.filter(p =>
+    p.empresa.toLowerCase().includes(filtro.toLowerCase())
   );
 
   return (
     <div className="container mt-4">
-      <h2>Lista de Clientes</h2>
+      <h2>Lista de Proveedores</h2>
 
       {/* Barra de búsqueda */}
       <input
         type="text"
         className="form-control mb-3"
-        placeholder="Buscar por nombre o apellido..."
+        placeholder="Buscar por nombre de empresa..."
         value={filtro}
         onChange={(e) => setFiltro(e.target.value)}
       />
@@ -74,30 +72,22 @@ function ConsultaClientes() {
       <table className="table table-striped table-hover">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Apellido Paterno</th>
-            <th>Apellido Materno</th>
-            <th>Domicilio</th>
+            <th>Empresa</th>
             <th>Teléfono</th>
-            <th>Límite de Crédito</th>
             <th>Actualizar</th>
             <th>Eliminar</th>
           </tr>
         </thead>
         <tbody>
-          {clientesFiltrados.map((cliente) => (
-            <tr key={cliente.id}>
-              <td>{cliente.nombres}</td>
-              <td>{cliente.apellido_paterno}</td>
-              <td>{cliente.apellido_materno}</td>
-              <td>{cliente.domicilio}</td>
-              <td>{cliente.telefono}</td>
-              <td>{cliente.limite_credito}</td>
+          {proveedoresFiltrados.map((proveedor) => (
+            <tr key={proveedor.id}>
+              <td>{proveedor.empresa}</td>
+              <td>{proveedor.telefono}</td>
               <td>
                 <button
                   type="button"
                   className="btn btn-success btn-sm"
-                  onClick={() => cargarCliente(cliente)}
+                  onClick={() => cargarProveedor(proveedor)}
                 >
                   Editar
                 </button>
@@ -106,7 +96,7 @@ function ConsultaClientes() {
                 <button
                   type="button"
                   className="btn btn-danger btn-sm"
-                  onClick={() => eliminarCliente(cliente.id)}
+                  onClick={() => eliminarProveedor(proveedor.id)}
                 >
                   Eliminar
                 </button>
@@ -119,4 +109,4 @@ function ConsultaClientes() {
   )
 }
 
-export default ConsultaClientes;
+export default ConsultaProveedores
