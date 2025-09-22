@@ -5,11 +5,13 @@ import AperturaDeCaja from './pages/AperturaDeCaja'
 import CierreDeCaja from './pages/CierreDeCaja'
 import ConsultaClientes from './pages/ConsultaClientes'
 import ConsultaProductos from './pages/ConsultaProductos'
+import ConsultaProveedores from './pages/ConsultaProveedores'
 import DetalleDevoluciones from './pages/DetalleDevoluciones'
 import DetalleVenta from './pages/DetalleVenta'
 import Devoluciones from './pages/Devoluciones'
 import MovimientoCaja from './pages/MovimientoCaja'
 import MovimientoInventario from './pages/MovimientoInventario'
+import Proveedores from './pages/Proveedores'
 import SaldoCliente from './pages/SaldoCliente'
 import Venta from './pages/Venta'
 import Home from './pages/Home'
@@ -33,6 +35,10 @@ function App() {
         <Route path='/clientes' element={<Clientes />} />
         <Route path='/consulta-clientes' element={<ConsultaClientes />} />
         <Route path='/saldo-cliente' element={<SaldoCliente />} />
+
+        {/* Proveedores */}
+        <Route path='/proveedores' element={<Proveedores />} />
+        <Route path='/consulta-proveedores' element={<ConsultaProveedores />} />
 
         {/* Ventas y detalles */}
         <Route path='/venta' element={<Venta />} />

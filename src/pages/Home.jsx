@@ -33,6 +33,13 @@ function Home() {
         <Link to="/saldo-cliente" className="btn btn-info m-2">Saldo de Clientes</Link>
       </div>
 
+      {/* Proveedores */}
+      <div className="mb-2">
+        <h3>Proveedores</h3>
+        <Link to="/proveedores" className="btn btn-primary m-2">Registrar/Editar Proveedores</Link>
+        <Link to="/consulta-proveedores" className="btn btn-secondary m-2">Consultar Proveedores</Link>
+      </div>
+
       {/* Ventas y Devoluciones */}
       <div className="mb-2">
         <h3>Ventas</h3>
