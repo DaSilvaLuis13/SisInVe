@@ -40,3 +40,24 @@
 .read-the-docs {
   color: #888;
 }
+
+/* === Estilos globales para modales === */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050; /* asegura que esté por encima */
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  z-index: 1060; /* más alto que el overlay */
+}
