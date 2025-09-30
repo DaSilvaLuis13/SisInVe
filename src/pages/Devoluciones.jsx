@@ -1,5 +1,6 @@
-// src/pages/Devoluciones.jsx
+//Aquí van los import que necesites incorporar elementos de la carpeta components
 
+ rama-salarioCliente
 // Aquí van los import que necesites
 
 // Si tienes componentes personalizados:
@@ -15,6 +16,20 @@ function Devoluciones() {
       <h1>Devoluciones</h1>
     </div>
   );
+
+/* 
+Formulario para registrar devoluciones
+Selección de venta
+Productos a devolver y cantidad
+Dinero a devolver
+Asociación con corte de caja
+*/
+
+function Devoluciones() {
+  return (
+    <div>Devoluciones</div>
+  )
+ main
 }
 
-export default Devoluciones;
+export default Devoluciones
