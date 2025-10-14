@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../services/client'
 import './Consultas.css';
 
@@ -18,9 +18,9 @@ function Consultas() {
   const getProductosConStock = async () => {
     setTitulo('Productos con Existencias');
     const { data, error } = await supabase
-      .from('productos')
-      .select('*')
-      .gt('existencias', 0); // 'gt' significa "greater than" (mayor que)
+      .from('Productos')
+      .select('id,codigo_barras,nombre,costo,ganancia,stock_actual')
+      .gt('stock_actual', 0); // 'gt' significa "greater than" (mayor que)
 
     if (error) {
       setError('Error al consultar productos con stock: ' + error.message);
@@ -35,9 +35,9 @@ function Consultas() {
   const getProductosSinStock = async () => {
     setTitulo('Productos sin Existencias');
     const { data, error } = await supabase
-      .from('productos')
-      .select('*')
-      .eq('existencias', 0); // 'eq' significa "equals" (igual a)
+      .from('Productos')
+      .select('id,codigo_barras,nombre,costo,ganancia,stock_actual')
+      .or('stock_actual.eq.0,stock_actual.is.null');
 
     if (error) {
       setError('Error al consultar productos sin stock: ' + error.message);
@@ -48,18 +48,20 @@ function Consultas() {
     }
   };
 
-  // 3. Ventas por rango de fechas
-  const getVentasPorFecha = async () => {
+  // 3. Ventas por rango de fechas (Crédito)
+  const getVentasPorFechaCredito = async () => {
     if (!fechaInicio || !fechaFin) {
       setError('Por favor, selecciona ambas fechas.');
       return;
     }
-    setTitulo(`Ventas desde ${fechaInicio} hasta ${fechaFin}`);
+    // AQUÍ ESTÁ EL CAMBIO
+    setTitulo(`Ventas a Crédito desde ${fechaInicio} hasta ${fechaFin}`);
     const { data, error } = await supabase
       .from('Ventas')
-      .select('*')
+      .select('id,id_cliente,fecha,hora,tipo_pago,total')
       .gte('fecha', fechaInicio) // 'gte' es "greater than or equal" (mayor o igual que)
-      .lte('fecha', fechaFin);   // 'lte' es "less than or equal" (menor o igual que)
+      .lte('fecha', fechaFin)   // 'lte' es "less than or equal" (menor o igual que)
+      .eq('tipo_pago', 'Crédito');
 
     if (error) {
       setError('Error al consultar las ventas: ' + error.message);
@@ -69,8 +71,31 @@ function Consultas() {
       setError(null);
     }
   };
+  
+  // 4. Ventas por rango de fechas (Contado)
+  const getVentasPorFechaContado = async () => {
+    if (!fechaInicio || !fechaFin) {
+      setError('Por favor, selecciona ambas fechas.');
+      return;
+    }
+    // Y AQUÍ ESTÁ EL OTRO CAMBIO
+    setTitulo(`Ventas de Contado desde ${fechaInicio} hasta ${fechaFin}`);
+    const { data, error } = await supabase
+      .from('Ventas')
+      .select('id,fecha,hora,total')
+      .gte('fecha', fechaInicio) // 'gte' es "greater than or equal" (mayor o igual que)
+      .lte('fecha', fechaFin)   // 'lte' es "less than or equal" (menor o igual que)
+      .eq('tipo_pago', 'Contado');
+    if (error) {
+      setError('Error al consultar las ventas: ' + error.message);
+      setResultados([]);
+    } else {
+      setResultados(data);
+      setError(null);
+    }
+  };
 
-  // 4. Devoluciones por rango de fechas
+  // 5. Devoluciones por rango de fechas
   const getDevolucionesPorFecha = async () => {
     if (!fechaInicio || !fechaFin) {
       setError('Por favor, selecciona ambas fechas.');
@@ -78,7 +103,7 @@ function Consultas() {
     }
     setTitulo(`Devoluciones desde ${fechaInicio} hasta ${fechaFin}`);
     const { data, error } = await supabase
-      .from('devoluciones')
+      .from('Devolucion')
       .select('*')
       .gte('fecha', fechaInicio)
       .lte('fecha', fechaFin);
@@ -116,7 +141,8 @@ function Consultas() {
             <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
           </label>
         </div>
-        <button onClick={getVentasPorFecha}>Buscar Ventas</button>
+        <button onClick={getVentasPorFechaCredito}>Buscar Ventas (Credito)</button>
+        <button onClick={getVentasPorFechaContado}>Buscar Ventas (Contado)</button>
         <button onClick={getDevolucionesPorFecha}>Buscar Devoluciones</button>
       </div>
       
@@ -154,4 +180,5 @@ function Consultas() {
     </div>
   );
 }
-export default Consultas
+
+export default Consultas;
