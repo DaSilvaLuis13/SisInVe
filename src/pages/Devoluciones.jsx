@@ -214,6 +214,16 @@ function Devoluciones() {
       </div>
     </div>
   );
+
+/* 
+Formulario para registrar devoluciones
+Selección de venta
+Productos a devolver y cantidad
+Dinero a devolver
+Asociación con corte de caja
+*/
+
+
 }
 
 export default Devoluciones;
