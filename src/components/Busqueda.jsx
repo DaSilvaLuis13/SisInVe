@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-function Busqueda({ datos, onSeleccionar }) {
+function Busqueda({ datos, onSeleccionar, mostrarStock = false }) {
   const [termino, setTermino] = useState("");
   const [resultados, setResultados] = useState([]);
 
@@ -43,7 +43,7 @@ function Busqueda({ datos, onSeleccionar }) {
                   <th>Nombre</th>
                   <th>Código</th>
                   <th>Unidad</th>
-                  <th>Precio</th>
+                  {mostrarStock ? <th>Stock</th> : <th>Precio</th>}
                   <th></th>
                 </>
               )}
@@ -79,7 +79,11 @@ function Busqueda({ datos, onSeleccionar }) {
                       <td>{item.nombre}</td>
                       <td>{item.codigo_barras}</td>
                       <td>{item.unidad_medida}</td>
-                      <td>${item.precio_venta?.toFixed(2) || "0.00"}</td>
+                      <td>
+                        {mostrarStock
+                          ? item.stock_actual
+                          : `$${item.precio_venta?.toFixed(2) || "0.00"}`}
+                      </td>
                       <td>
                         <button
                           className="btn btn-sm btn-outline-primary"

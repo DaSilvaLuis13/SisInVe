@@ -1,16 +1,7 @@
-//Aquí van los import que necesites incorporar elementos de la carpeta components
 import { useState, useEffect } from 'react'
 import { supabase } from "../services/client"
-/* 
-Formulario para registrar pagos o deudas
-Selección de cliente
-Monto a pagar o abonado
-Fecha y hora (auto)
-Asociación con corte de caja
-*/
 
 function SaldoCliente() {
-  
   const [clientes, setClientes] = useState([]);
   const [filtro, setFiltro] = useState('');
 
@@ -18,83 +9,136 @@ function SaldoCliente() {
   const [saldoCliente, setSaldoCliente] = useState(null);
   const [compraReciente, setCompraReciente] = useState(null);
 
-  
-    useEffect(() => {
-      const fetchClientes = async () => {
-        const { data, error } = await supabase
-          .from("Clientes")
-          .select("id, nombres, apellido_paterno, apellido_materno, limite_credito")
-          .order('id', { ascending: true });
-  
-        if (error) {
-          console.error("Error al cargar clientes:", error);
-        } else {
-          setClientes(data);
-        }
-      };
-  
-      fetchClientes();
-    }, []);
+  const [montoAbono, setMontoAbono] = useState('');
+  const [idCorte, setIdCorte] = useState(null);
+  const [corteActual, setCorteActual] = useState(null);
 
-    useEffect(() => {
-      if (!clienteSeleccionado) return;
+  // Obtener clientes
+  useEffect(() => {
+    const fetchClientes = async () => {
+      const { data, error } = await supabase
+        .from("Clientes")
+        .select("id, nombres, apellido_paterno, apellido_materno, limite_credito")
+        .order('id', { ascending: true });
 
-      const fetchSaldo = async () => {
-        const { data, error } = await supabase
-          .from("SaldoCliente")
-          .select("fecha, hora, monto_que_pagar")
-          .eq("id_cliente", clienteSeleccionado.id);
+      if (error) console.error("Error al cargar clientes:", error);
+      else setClientes(data);
+    };
+    fetchClientes();
+  }, []);
 
-        if (error) {
-          console.error("Error al cargar saldo:", error);
-        } else {
-          // 👇 Aquí va el control del array vacío
-          if (data.length === 0) {
-            setSaldoCliente({ fecha: null, hora: null, monto_que_pagar: 0 });
-          } else {
-            setSaldoCliente(data[0]);
-          }
-        }
-      };
+  // Obtener último corte
+  useEffect(() => {
+    const fetchUltimoCorte = async () => {
+      const { data, error } = await supabase
+        .from("CorteCaja")
+        .select("*")
+        .order("id", { ascending: false })
+        .limit(1)
+        .single();
 
-      const fetchCompraReciente = async () => {
-        const { data, error } = await supabase
-          .from("Ventas")
-          .select("fecha, hora, total")
-          .eq("id_cliente", clienteSeleccionado.id)
-          .eq("tipo_pago", "credito")
-          .order("fecha", {ascending: false})
-          .order("hora", {ascending: false})
-          .limit(1);
-
-        if (error) {
-          console.error("Error al cargar compra reciente:", error);
-        } else {
-          // 👇 Aquí va el control del array vacío
-          if (data.length === 0) {
-            setCompraReciente(null);
-          } else {
-            setCompraReciente(data[0]);
-          }
-        }
+      if (!error && data) {
+        setIdCorte(data.id);
+        setCorteActual(data);
       }
+    };
+    fetchUltimoCorte();
+  }, []);
 
-      fetchSaldo();
-      fetchCompraReciente();
-    }, [clienteSeleccionado]);
+  // Obtener saldo y última compra del cliente seleccionado
+  useEffect(() => {
+    if (!clienteSeleccionado) return;
 
+    const fetchSaldo = async () => {
+      const { data, error } = await supabase
+        .from("SaldoCliente")
+        .select("fecha, hora, monto_que_pagar")
+        .eq("id_cliente", clienteSeleccionado.id);
 
+      if (!error) {
+        if (data.length === 0) setSaldoCliente({ fecha: null, hora: null, monto_que_pagar: 0 });
+        else setSaldoCliente(data[0]);
+      }
+    };
 
-    // Filtrar clientes según el texto del input
+    const fetchCompraReciente = async () => {
+      const { data, error } = await supabase
+        .from("Ventas")
+        .select("fecha, hora, total")
+        .eq("id_cliente", clienteSeleccionado.id)
+        .eq("tipo_pago", "credito")
+        .order("fecha", { ascending: false })
+        .order("hora", { ascending: false })
+        .limit(1);
+
+      if (!error) setCompraReciente(data.length ? data[0] : null);
+    };
+
+    fetchSaldo();
+    fetchCompraReciente();
+  }, [clienteSeleccionado]);
+
   const clientesFiltrados = clientes.filter(c =>
     c.nombres.toLowerCase().includes(filtro.toLowerCase()) ||
     c.apellido_paterno.toLowerCase().includes(filtro.toLowerCase()) ||
     c.apellido_materno.toLowerCase().includes(filtro.toLowerCase())
   );
 
+  // Función para abonar al saldo del cliente
+  const abonarCliente = async () => {
+    if (!montoAbono || !clienteSeleccionado || !idCorte) {
+      alert("Completa todos los campos necesarios.");
+      return;
+    }
+
+    const fecha = new Date().toISOString().split("T")[0];
+    const hora = new Date().toLocaleTimeString("es-ES", { hour12: false });
+    const montoFloat = parseFloat(montoAbono);
+
+    try {
+      // Actualizar saldo existente del cliente
+      const nuevoMonto = parseFloat((saldoCliente.monto_que_pagar - montoFloat).toFixed(2));
+
+      const { error: saldoError } = await supabase
+        .from("SaldoCliente")
+        .update({ monto_que_pagar: nuevoMonto, fecha, hora })
+        .eq("id_cliente", clienteSeleccionado.id);
+
+      if (saldoError) throw saldoError;
+
+      // Actualizar totales del corte
+      const nuevosTotales = { ...corteActual };
+      nuevosTotales.abonos_total = parseFloat((nuevosTotales.abonos_total + montoFloat).toFixed(2));
+      nuevosTotales.fondo_actual = parseFloat((nuevosTotales.fondo_actual + montoFloat).toFixed(2));
+
+      const { error: corteError } = await supabase
+        .from("CorteCaja")
+        .update({
+          abonos_total: nuevosTotales.abonos_total,
+          fondo_actual: nuevosTotales.fondo_actual
+        })
+        .eq("id", idCorte);
+
+      if (corteError) throw corteError;
+
+      // Refrescar estados locales
+      setSaldoCliente(prev => ({
+        ...prev,
+        monto_que_pagar: nuevoMonto,
+        fecha,
+        hora
+      }));
+      setCorteActual(nuevosTotales);
+      setMontoAbono('');
+      alert("Abono registrado correctamente.");
+    } catch (error) {
+      console.error("Error al registrar abono:", error);
+      alert("No se pudo registrar el abono.");
+    }
+  };
+
   return (
     <div>SaldoCliente
-      {/* Barra de búsqueda */}
       <input
         type="text"
         className="form-control mb-3"
@@ -129,7 +173,6 @@ function SaldoCliente() {
                   Selección
                 </button>
               </td>
-              
             </tr>
           ))}
         </tbody>
@@ -149,8 +192,19 @@ function SaldoCliente() {
           <h3>Saldo Actual</h3>
           <p><strong>Fecha:</strong> {saldoCliente.fecha || "Sin registros"}</p>
           <p><strong>Hora:</strong> {saldoCliente.hora || "Sin registros"}</p>
-          <p><strong>Saldo disponible:</strong> {clienteSeleccionado.limite_credito - saldoCliente.monto_que_pagar}</p>
-          <p><strong>Total de deuda:</strong> {saldoCliente.monto_que_pagar}</p>
+          <p><strong>Saldo disponible:</strong> {(clienteSeleccionado.limite_credito - saldoCliente.monto_que_pagar).toFixed(2)}</p>
+          <p><strong>Total de deuda:</strong> {saldoCliente.monto_que_pagar.toFixed(2)}</p>
+
+          <div className="mb-3 mt-2">
+            <input
+              type="number"
+              placeholder="Monto a abonar"
+              className="form-control mb-2"
+              value={montoAbono}
+              onChange={(e) => setMontoAbono(e.target.value)}
+            />
+            <button className="btn btn-success" onClick={abonarCliente}>Abonar</button>
+          </div>
         </section>
       )}
 
@@ -162,10 +216,8 @@ function SaldoCliente() {
           <p><strong>Total:</strong> {compraReciente.total}</p>
         </section>
       )}
-
-
     </div>
   )
 }
 
-export default SaldoCliente
+export default SaldoCliente;
