@@ -25,7 +25,7 @@ function Clientes() {
     try {
       const { data, error } = await supabase.from("Clientes").insert({
       nombres: nombre,
-      apellido_pagitterno: aPaterno,
+      apellido_paterno: aPaterno,
       apellido_materno: aMaterno,
       domicilio: domicilioCliente,
       telefono: telefonoCliente,
