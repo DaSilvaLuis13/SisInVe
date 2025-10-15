@@ -115,6 +115,7 @@ function ConsultaProductos() {
               <th>Costo</th>
               <th>Precio Venta</th>
               <th>Stock Min/Max</th>
+              <th>Stock Actual</th>
               <th className='text-center'>Acciones</th>
             </tr>
           </thead>
@@ -127,6 +128,7 @@ function ConsultaProductos() {
                 <td>${p.costo ? p.costo.toFixed(2) : '0.00'}</td>
                 <td>${p.precio_venta ? p.precio_venta.toFixed(2) : '0.00'}</td>
                 <td>{p.stock_minimo || 0} / {p.stock_maximo || 'N/A'}</td>
+                <td>{p.stock_actual}</td>
                 <td>
                   <div className="d-flex gap-2 justify-content-center">
                     <button

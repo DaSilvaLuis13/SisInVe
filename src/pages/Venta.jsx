@@ -19,7 +19,7 @@ function Venta() {
     const fetchProductos = async () => {
       const { data, error } = await supabase
         .from("Productos")
-        .select("id, codigo_barras, nombre, unidad_medida, precio_venta")
+        .select("id, codigo_barras, nombre, unidad_medida, precio_venta, stock_actual")
         .order("id", { ascending: true });
       if (!error) setProductos(data);
     };
@@ -65,7 +65,7 @@ function Venta() {
       }
     } else if (tipoBusqueda === "cliente") {
       setSeleccion(prev => ({ ...prev, cliente: item }));
-      setTipoPago("Crédito"); // ✅ asignar tipo de pago al elegir cliente
+      setTipoPago("Crédito");
     }
     setMostrarBusqueda(false);
   };
@@ -111,7 +111,7 @@ function Venta() {
     setProductoMedida(null);
     setCantidadMedida("");
     setPrecioMedida("");
-    setTipoPago(""); // ✅ limpiar tipo de pago al cancelar todo
+    setTipoPago("");
   };
 
   const cerrarModalMedida = () => {
@@ -161,127 +161,163 @@ function Venta() {
     0
   );
 
+  // 🔹 COBRAR VENTA (corregido)
   const cobrarVenta = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // Validaciones
-  if (productosSeleccionados.length === 0) {
-    alert("Debes agregar al menos un producto.");
-    return;
-  }
-  if (!tipoPago) {
-    alert("Debes seleccionar un tipo de pago.");
-    return;
-  }
-  if (tipoPago === "Crédito" && !seleccion.cliente) {
-    alert("Debes seleccionar un cliente para crédito.");
-    return;
-  }
-
-  try {
-    const ahora = new Date();
-    const fechaSQL = ahora.toISOString().split("T")[0];
-    const horaSQL = ahora.toTimeString().split(" ")[0];
-
-    // 1️⃣ Insertar venta
-    const { data: ventaData, error: ventaError } = await supabase
-      .from("Ventas")
-      .insert({
-        id_cliente: seleccion.cliente ? seleccion.cliente.id : null,
-        tipo_pago: tipoPago,
-        total: total,
-        fecha: fechaSQL,
-        hora: horaSQL
-      })
-      .select("id")
-      .single();
-    if (ventaError) throw ventaError;
-
-    const idVenta = ventaData.id;
-
-    // 2️⃣ Insertar detalle de venta
-    const detalles = productosSeleccionados.map((p) => ({
-      id_venta: idVenta,
-      id_producto: p.id,
-      cantidad: p.cantidad,
-      precio_unitario: p.precio_venta,
-      subtotal: p.cantidad * p.precio_venta
-    }));
-
-    const { error: detalleError } = await supabase
-      .from("DetalleVenta")
-      .insert(detalles);
-    if (detalleError) throw detalleError;
-
-    // 3️⃣ Insertar movimientos de inventario
-    const movimientos = productosSeleccionados.map((p) => ({
-      id_producto: p.id,
-      fecha: fechaSQL,
-      hora: horaSQL,
-      tipo: "salida",
-      cantidad: p.cantidad
-    }));
-
-    const { error: movError } = await supabase
-      .from("MovimientosInventario")
-      .insert(movimientos);
-    if (movError) throw movError;
-
-    // 4️⃣ Actualizar stock_actual de productos
-    for (let p of productosSeleccionados) {
-      await supabase
-        .from("Productos")
-        .update({
-          stock_actual: supabase.rpc("get_stock_actual", { id_producto: p.id }) - p.cantidad
-        })
-        .eq("id", p.id);
+    if (productosSeleccionados.length === 0) {
+      alert("Debes agregar al menos un producto.");
+      return;
+    }
+    if (!tipoPago) {
+      alert("Debes seleccionar un tipo de pago.");
+      return;
+    }
+    if (tipoPago === "Crédito" && !seleccion.cliente) {
+      alert("Debes seleccionar un cliente para crédito.");
+      return;
     }
 
-    // 5️⃣ Actualizar saldo cliente si es crédito
-    if (tipoPago === "Crédito" && seleccion.cliente) {
-      const { data: saldoData, error: saldoError } = await supabase
-        .from("SaldoCliente")
-        .select("id, monto_que_pagar")
-        .eq("id_cliente", seleccion.cliente.id)
+    try {
+      const ahora = new Date();
+      const fechaSQL = ahora.toISOString().split("T")[0];
+      const horaSQL = ahora.toTimeString().split(" ")[0];
+
+      const { data: corteData, error: corteError } = await supabase
+        .from("CorteCaja")
+        .select("id")
+        .eq("fecha", fechaSQL)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      if (corteError) throw corteError;
+      if (!corteData || corteData.length === 0) {
+        alert("No hay un corte de caja abierto para hoy.");
+        return;
+      }
+
+      const idCorte = corteData[0].id;
+
+      // Insertar venta
+      const { data: ventaData, error: ventaError } = await supabase
+        .from("Ventas")
+        .insert({
+          id_cliente: seleccion.cliente ? seleccion.cliente.id : null,
+          id_corte: idCorte,
+          tipo_pago: tipoPago,
+          total: total,
+          fecha: fechaSQL,
+          hora: horaSQL
+        })
+        .select("id")
         .single();
 
-      if (saldoError && saldoError.code !== "PGRST116") throw saldoError; // no existe fila
+      if (ventaError) throw ventaError;
+      const idVenta = ventaData.id;
 
-      if (saldoData) {
-        // Actualizar saldo existente
-        await supabase
-          .from("SaldoCliente")
-          .update({
-            monto_que_pagar: saldoData.monto_que_pagar + total,
-            fecha: fechaSQL,
-            hora: horaSQL
-          })
-          .eq("id", saldoData.id);
-      } else {
-        // Insertar saldo nuevo
-        await supabase
-          .from("SaldoCliente")
-          .insert({
-            id_cliente: seleccion.cliente.id,
-            monto_que_pagar: total,
-            fecha: fechaSQL,
-            hora: horaSQL
-          });
-      }
-    }
+      // Detalle de venta
+      const detalles = productosSeleccionados.map((p) => ({
+        id_venta: idVenta,
+        id_producto: p.id,
+        cantidad: p.cantidad,
+        precio_unitario: p.precio_venta,
+        subtotal: p.cantidad * p.precio_venta
+      }));
+      const { error: detalleError } = await supabase
+        .from("DetalleVenta")
+        .insert(detalles);
+      if (detalleError) throw detalleError;
 
-    // 6️⃣ Reiniciar venta
-    cancelarVenta();
+      // Movimientos de inventario
+      const movimientos = productosSeleccionados.map((p) => ({
+        id_producto: p.id,
+        fecha: fechaSQL,
+        hora: horaSQL,
+        tipo: "salida",
+        cantidad: p.cantidad
+      }));
+      const { error: movError } = await supabase
+        .from("MovimientosInventario")
+        .insert(movimientos);
+      if (movError) throw movError;
 
-  } catch (error) {
-    console.error("Error al cobrar la venta:", error.message);
+      // Actualizar stock_actual correctamente
+      // Actualizar stock_actual directamente sin RPC
+for (let p of productosSeleccionados) {
+  const { data: productoActual, error: productoError } = await supabase
+    .from("Productos")
+    .select("stock_actual")
+    .eq("id", p.id)
+    .single();
+
+  if (!productoError && productoActual && productoActual.stock_actual !== null) {
+    const nuevoStock = productoActual.stock_actual - p.cantidad;
+    await supabase
+      .from("Productos")
+      .update({ stock_actual: nuevoStock })
+      .eq("id", p.id);
   }
-};
+}
 
 
+      // Actualizar saldo cliente si es crédito
+      if (tipoPago === "Crédito" && seleccion.cliente) {
+        const { data: saldoData } = await supabase
+          .from("SaldoCliente")
+          .select("id, monto_que_pagar")
+          .eq("id_cliente", seleccion.cliente.id)
+          .maybeSingle();
 
+        if (saldoData) {
+          await supabase
+            .from("SaldoCliente")
+            .update({
+              monto_que_pagar: Number(saldoData.monto_que_pagar || 0) + total,
+              fecha: fechaSQL,
+              hora: horaSQL
+            })
+            .eq("id", saldoData.id);
+        } else {
+          await supabase
+            .from("SaldoCliente")
+            .insert({
+              id_cliente: seleccion.cliente.id,
+              monto_que_pagar: total,
+              fecha: fechaSQL,
+              hora: horaSQL
+            });
+        }
+      }
 
+      // Actualizar CorteCaja
+      const { data: corteActual } = await supabase
+        .from("CorteCaja")
+        .select("ventas_total, fiado_total")
+        .eq("id", idCorte)
+        .single();
 
+      let nuevoVentasTotal = corteActual.ventas_total || 0;
+      let nuevoFiadoTotal = corteActual.fiado_total || 0;
+
+      if (tipoPago === "Crédito") nuevoFiadoTotal += total;
+      else nuevoVentasTotal += total;
+
+      await supabase
+        .from("CorteCaja")
+        .update({
+          ventas_total: nuevoVentasTotal,
+          fiado_total: nuevoFiadoTotal
+        })
+        .eq("id", idCorte);
+
+      cancelarVenta();
+      alert("Venta registrada correctamente.");
+
+    } catch (error) {
+      console.error("Error al cobrar la venta:", error.message);
+      alert("Ocurrió un error al procesar la venta.");
+    }
+  };
 
   return (
     <div className="container my-4">
@@ -289,10 +325,7 @@ function Venta() {
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <h5 className="card-title">Agregar productos</h5>
-          <button
-            className="btn btn-outline-primary mb-3"
-            onClick={() => abrirBusqueda("producto")}
-          >
+          <button className="btn btn-outline-primary mb-3" onClick={() => abrirBusqueda("producto")}>
             Buscar producto
           </button>
 
@@ -324,30 +357,19 @@ function Venta() {
                       <td>{p.unidad_medida}</td>
                       <td className="text-end">
                         <div className="d-flex justify-content-end gap-1">
-                          <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => actualizarCantidad(p, -1)}
-                          >
+                          <button className="btn btn-sm btn-outline-secondary" onClick={() => actualizarCantidad(p, -1)}>
                             -
                           </button>
                           <span>{p.cantidad}</span>
-                          <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => actualizarCantidad(p, +1)}
-                          >
+                          <button className="btn btn-sm btn-outline-secondary" onClick={() => actualizarCantidad(p, +1)}>
                             +
                           </button>
                         </div>
                       </td>
                       <td className="text-end">${p.precio_venta.toFixed(2)}</td>
-                      <td className="text-end">
-                        ${(p.precio_venta * p.cantidad).toFixed(2)}
-                      </td>
+                      <td className="text-end">${(p.precio_venta * p.cantidad).toFixed(2)}</td>
                       <td>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => quitarProducto(p.id)}
-                        >
+                        <button className="btn btn-sm btn-outline-danger" onClick={() => quitarProducto(p.id)}>
                           Quitar
                         </button>
                       </td>
@@ -357,9 +379,7 @@ function Venta() {
               </tbody>
               <tfoot>
                 <tr>
-                  <th colSpan={5} className="text-end">
-                    Total
-                  </th>
+                  <th colSpan={5} className="text-end">Total</th>
                   <th className="text-end">${total.toFixed(2)}</th>
                   <th></th>
                 </tr>
@@ -374,8 +394,7 @@ function Venta() {
         <div className="modal-overlay position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
           <div className="modal-content bg-white p-4 rounded shadow w-50">
             <h5>
-              Ingrese cantidad o precio para {productoMedida.nombre} (
-              {productoMedida.unidad_medida})
+              Ingrese cantidad o precio para {productoMedida.nombre} ({productoMedida.unidad_medida})
             </h5>
             <input
               type="number"
@@ -403,25 +422,25 @@ function Venta() {
         </div>
       )}
 
-      {/* Campos extra de la venta */}
+      {/* Campos extra */}
       <div className="card shadow-sm mb-4">
         <div className="card-body d-flex gap-3">
           <p>
-            <strong>Tipo de pago: </strong>
-            <span>{tipoPago || "No seleccionado"}</span>
+            <strong>Tipo de pago:</strong> <span>{tipoPago || "No seleccionado"}</span>
           </p>
           {tipoPago === "Crédito" && seleccion.cliente && (
             <p className="ms-3">
               <strong>Cliente:</strong> {seleccion.cliente.nombres}{" "}
-              {seleccion.cliente.apellido_paterno}{" "}{seleccion.cliente.apellido_materno}
+              {seleccion.cliente.apellido_paterno}{" "}
+              {seleccion.cliente.apellido_materno}
             </p>
           )}
         </div>
       </div>
 
-      {/* Botones de cobro */}
+      {/* Botones */}
       <div className="card shadow-sm mb-4">
-        <div className="card-body d-flex gap-3 ">
+        <div className="card-body d-flex gap-3">
           <button
             className="btn btn-success"
             onClick={() => {
@@ -431,17 +450,14 @@ function Venta() {
           >
             Contado
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => abrirBusqueda("cliente")}
-          >
+          <button className="btn btn-primary" onClick={() => abrirBusqueda("cliente")}>
             Crédito
           </button>
           <button
             className="btn btn-danger"
             onClick={() => {
               setSeleccion((prev) => ({ ...prev, cliente: null }));
-              setTipoPago(""); 
+              setTipoPago("");
             }}
           >
             Quitar cliente
@@ -455,7 +471,7 @@ function Venta() {
         </div>
       </div>
 
-      {/* Modal de búsqueda */}
+      {/* Modal búsqueda */}
       {mostrarBusqueda && (
         <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
           <div className="bg-white p-4 rounded shadow w-75">
@@ -465,10 +481,7 @@ function Venta() {
               onSeleccionar={manejarSeleccion}
             />
             <div className="text-end mt-3">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setMostrarBusqueda(false)}
-              >
+              <button className="btn btn-secondary" onClick={() => setMostrarBusqueda(false)}>
                 Cerrar
               </button>
             </div>
