@@ -18,7 +18,8 @@ import Home from './pages/Home'
 import NotFound from './pages/NotFound'
 import Productos from './pages/Productos'
 import Clientes from './pages/Clientes'
-
+import Consultas from './pages/Consultas'
+import Reportes from './pages/Reportes'
 function App() {
   return (
     <div className='App'>
@@ -53,6 +54,9 @@ function App() {
         <Route path='/cierre-caja' element={<CierreDeCaja />} />
         <Route path='/movimiento-caja' element={<MovimientoCaja />} />
 
+        {/*Consultas y reportes*/}
+        <Route path='/consultas' element={<Consultas/>} />
+        <Route path='/reportes' element={<Reportes/>} />
         {/* Página no encontrada */}
         <Route path='*' element={<NotFound />} />
       </Routes>

@@ -58,6 +58,13 @@ function Home() {
         <Link to="/cierre-caja" className="btn btn-danger m-2">Cierre de Caja</Link>
         <Link to="/movimiento-caja" className="btn btn-info m-2">Movimientos de Caja</Link>
       </div>
+
+
+      <div className="mb-2">
+        <h3>Consultas - Reportes</h3>
+        <Link to="/consultas" className="btn btn-primary m-2">Consultas</Link>
+        <Link to="/reportes" className="btn btn-warning m-2">Reportes</Link>
+      </div>
     </div>
   );
 }
