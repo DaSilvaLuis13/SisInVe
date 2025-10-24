@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 function DetalleVenta() {
   const [ventas, setVentas] = useState([]);
@@ -10,10 +12,21 @@ function DetalleVenta() {
   const [filtroId, setFiltroId] = useState("");
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroTipoPago, setFiltroTipoPago] = useState("");
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
+  const [fechaInicio, setFechaInicio] = useState(null);
+  const [fechaFin, setFechaFin] = useState(null);
 
-  // Cargar ventas con datos del cliente
+  const hoy = new Date();
+
+  // Función para formatear fechas a YYYY/MM/DD
+  const formatearFechaSupabase = (date) => {
+    if (!date) return null;
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}/${mm}/${dd}`;
+  };
+
+  // Cargar ventas
   useEffect(() => {
     const fetchVentas = async () => {
       let query = supabase
@@ -29,8 +42,8 @@ function DetalleVenta() {
         `)
         .order("id", { ascending: true });
 
-      if (fechaInicio) query = query.gte("fecha", fechaInicio);
-      if (fechaFin) query = query.lte("fecha", fechaFin);
+      if (fechaInicio) query = query.gte("fecha", formatearFechaSupabase(fechaInicio));
+      if (fechaFin) query = query.lte("fecha", formatearFechaSupabase(fechaFin));
       if (filtroId) query = query.eq("id", filtroId);
       if (filtroTipoPago) query = query.ilike("tipo_pago", `%${filtroTipoPago}%`);
 
@@ -42,7 +55,7 @@ function DetalleVenta() {
     fetchVentas();
   }, [fechaInicio, fechaFin, filtroId, filtroTipoPago]);
 
-  // Cargar detalle de venta con productos
+  // Cargar detalle de venta
   useEffect(() => {
     if (!ventaSeleccionada) return;
 
@@ -99,21 +112,31 @@ function DetalleVenta() {
           className="form-control mb-2"
         >
           <option value="">Tipo de pago</option>
-          <option value="Efectivo">Efectivo</option>
+          <option value="Contado">Contado</option>
           <option value="Crédito">Crédito</option>
         </select>
+
+        {/* DatePickers */}
         <div className="d-flex gap-2 mb-2">
-          <input
-            type="date"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
+          <DatePicker
+            selected={fechaInicio}
+            onChange={(date) => {
+              setFechaInicio(date);
+              if (fechaFin && date > fechaFin) setFechaFin(date);
+            }}
             className="form-control"
+            placeholderText="Fecha inicio"
+            dateFormat="yyyy/MM/dd"
+            maxDate={hoy}
           />
-          <input
-            type="date"
-            value={fechaFin}
-            onChange={(e) => setFechaFin(e.target.value)}
+          <DatePicker
+            selected={fechaFin}
+            onChange={(date) => setFechaFin(date)}
             className="form-control"
+            placeholderText="Fecha fin"
+            dateFormat="yyyy/MM/dd"
+            minDate={fechaInicio || null}
+            maxDate={hoy}
           />
         </div>
       </div>

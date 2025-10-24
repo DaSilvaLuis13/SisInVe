@@ -1,146 +1,150 @@
-//Aquí van los import que necesites incorporar elementos de la carpeta components
-import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { supabase } from "../services/client"
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "../services/client";
 
 /* 
 Formulario de registro/edición de proveedores
-Empresa
-Teléfono
+Campos: 
+Empresa, Teléfono
 */
 
 function Proveedores() {
-  const [idProveedor, setIdProveedor] = useState(null)
-  const [nombreEmpresa, setEmpresa] = useState('')
-  const [telefonoEmpresa, setTelefonoEmpresa] = useState('')
+  const [idProveedor, setIdProveedor] = useState(null);
+  const [empresa, setEmpresa] = useState("");
+  const [telefono, setTelefono] = useState("");
 
-  const crearProveedor = async e => {
-    e.preventDefault()
-    
+  const location = useLocation();
+
+  const limpiarFormulario = () => {
+    setIdProveedor(null);
+    setEmpresa("");
+    setTelefono("");
+  };
+
+  // 🧩 Crear proveedor
+  const crearProveedor = async (e) => {
+    e.preventDefault();
+
+    if (!empresa || !telefono) {
+      alert("Por favor, completa todos los campos.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.from("Proveedores").insert({
-      empresa: nombreEmpresa,
-      telefono: telefonoEmpresa
-    });
-
+        empresa,
+        telefono,
+      });
 
       if (error) throw error;
-
-      // ✅ Reiniciar valores del formulario
-      setIdProveedor(null);
-      setEmpresa('');
-      setTelefonoEmpresa('');
-
+      limpiarFormulario();
+      alert("✅ Proveedor registrado con éxito.");
       console.log("Proveedor creado:", data);
-
     } catch (error) {
-      console.log(error)
+      alert(`❌ Error al registrar el proveedor: ${error.message}`);
+      console.error(error);
     }
-  }
+  };
 
-  //Actualizar Proveedor
-
-  const actualizarProveedor = async e => {
-    e.preventDefault()
+  // 🧩 Actualizar proveedor
+  const actualizarProveedor = async (e) => {
+    e.preventDefault();
 
     if (!idProveedor) {
       alert("Primero selecciona un proveedor para actualizar.");
       return;
     }
-    
-    try {
-      const { data, error } = await supabase.from("Proveedores").update({
-      empresa: nombreEmpresa,
-      telefono: telefonoEmpresa
-    }).eq('id', idProveedor);
 
+    if (!empresa || !telefono) {
+      alert("Por favor, completa todos los campos.");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("Proveedores")
+        .update({ empresa, telefono })
+        .eq("id", idProveedor);
 
       if (error) throw error;
-
-      // ✅ Reiniciar valores del formulario
-      setIdProveedor(null);
-      setEmpresa('');
-      setTelefonoEmpresa('');
-      
+      limpiarFormulario();
+      alert("✅ Proveedor actualizado con éxito.");
       console.log("Proveedor actualizado:", data);
-
     } catch (error) {
-      console.log(error)
+      alert(`❌ Error al actualizar el proveedor: ${error.message}`);
+      console.error(error);
     }
-  }
+  };
 
-  //Localizar Id proveedor
-
-  const location = useLocation();
-        useEffect(() => {
-      if(location.state?.proveedor){
-        const p = location.state.proveedor;
-        setIdProveedor(p.id);
-        setEmpresa(p.empresa);
-        setTelefonoEmpresa(p.telefono);
-        
-        // Limpiar state para que no persista en reload
-        window.history.replaceState({}, document.title);
-      }
+  // 📦 Cargar proveedor si viene desde "consulta-proveedores"
+  useEffect(() => {
+    if (location.state?.proveedor) {
+      const p = location.state.proveedor;
+      setIdProveedor(p.id);
+      setEmpresa(p.empresa);
+      setTelefono(p.telefono);
+      window.history.replaceState({}, document.title);
+    }
   }, [location.state]);
 
   return (
-    <div>
-      <h2>Registrar Proveedor</h2>
-      <div className="container">
-        <div className="d-flex gap-2 justify-content-center">
-          <button 
-            type="button"   // importante: NO submit
-            className="btn btn-primary"
-            onClick={crearProveedor}  // se ejecuta solo al hacer click
-          >
-            Crear
-          </button>
-          
-          <button 
-            type="button" 
-            className="btn btn-success"
-            onClick={actualizarProveedor}
-          >
-            Editar
-          </button>
-           
-        </div>
-        <Link to="/consulta-proveedores" className="btn btn-secondary m-2">Consultar Proveedores</Link>
+    <div className="container mt-4">
+      <h2 className="text-center mb-4">
+        {idProveedor ? "Editar Proveedor" : "Registrar Proveedor"}
+      </h2>
 
-      </div>
-      <form className="container w-50">
-        
-        <div className="row mb-3">
-          <label htmlFor="empresas" className="form-label">Empresa:</label>
-          <input 
-            type="text" 
-            className="form-control text-center" 
-            id="empresas" 
-            value={nombreEmpresa}
+      <form
+        className="w-50 mx-auto"
+        onSubmit={idProveedor ? actualizarProveedor : crearProveedor}
+      >
+        {/* Empresa */}
+        <div className="mb-3">
+          <label htmlFor="empresa" className="form-label">
+            Empresa *:
+          </label>
+          <input
+            type="text"
+            className="form-control text-center"
+            id="empresa"
+            value={empresa}
             onChange={(e) => setEmpresa(e.target.value)}
+            required
           />
         </div>
 
-        <div className="row mb-3">
-          <label htmlFor="telefono" className="form-label">Teléfono:</label>
-            <input 
-              type="text" 
-              className="form-control text-center" 
-              id="telefono"
-              value={telefonoEmpresa}
-              onChange={(e) => setTelefonoEmpresa(e.target.value)}
-            />
+        {/* Teléfono */}
+        <div className="mb-3">
+          <label htmlFor="telefono" className="form-label">
+            Teléfono *:
+          </label>
+          <input
+            type="text"
+            className="form-control text-center"
+            id="telefono"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            required
+          />
         </div>
 
-        
-
-        
+        {/* Botones */}
+        <div className="d-flex justify-content-center gap-2">
+          <button
+            type="submit"
+            className={`btn ${idProveedor ? "btn-success" : "btn-primary"}`}
+          >
+            {idProveedor ? "Actualizar" : "Crear"}
+          </button>
+          <Link to="/consulta-proveedores" className="btn btn-secondary">
+            Consultar Proveedores
+          </Link>
+          <Link to="/" className="btn btn-danger">
+            X
+          </Link>
+        </div>
       </form>
-
-      
     </div>
-  )
+  );
 }
 
-export default Proveedores
+export default Proveedores;

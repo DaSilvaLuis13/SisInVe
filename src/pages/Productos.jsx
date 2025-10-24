@@ -1,296 +1,329 @@
-//Aquí van los import que necesites incorporar elementos de la carpeta components
-// Aquí van los import que necesites incorporar elementos de la carpeta components
-import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { supabase } from "../services/client" // Asumiendo que esta es la ruta a tu cliente de Supabase
-// import InputProducto from "../components/InputProducto"; // Si tuvieras un componente de input reutilizable
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "../services/client";
 
-/* Formulario de registro/edición de productos
-Código de barras
-Nombre
-Unidad de medida
-Costo
-Ganancia
-Precio de venta
+/*
+Formulario de registro/edición de productos
+Campos:
+Código de barras, Nombre, Unidad de medida,
+Costo, Ganancia, Precio de venta,
 Stock mínimo / máximo
 */
 
 function Productos() {
-  const [idProducto, setIdProducto] = useState(null)
-  const [codigoBarras, setCodigoBarras] = useState('')
-  const [nombre, setNombre] = useState('')
-  const [unidadMedida, setUnidadMedida] = useState('')
-  const [costo, setCosto] = useState('')
-  const [ganancia, setGanancia] = useState('')
-  const [precioVenta, setPrecioVenta] = useState('')
-  const [stockMinimo, setStockMinimo] = useState('')
-  const [stockMaximo, setStockMaximo] = useState('')
+  const [idProducto, setIdProducto] = useState(null);
+  const [codigoBarras, setCodigoBarras] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [unidadMedida, setUnidadMedida] = useState("");
+  const [costo, setCosto] = useState("");
+  const [ganancia, setGanancia] = useState("");
+  const [precioVenta, setPrecioVenta] = useState("");
+  const [stockMinimo, setStockMinimo] = useState("");
+  const [stockMaximo, setStockMaximo] = useState("");
+  const [stockInicial, setStockInicial] = useState(""); // <-- stock inicial solo para creación
 
-  // Función para calcular automáticamente el Precio de Venta
+  const location = useLocation();
+
+  const limpiarFormulario = () => {
+    setIdProducto(null);
+    setCodigoBarras("");
+    setNombre("");
+    setUnidadMedida("");
+    setCosto("");
+    setGanancia("");
+    setPrecioVenta("");
+    setStockMinimo("");
+    setStockMaximo("");
+    setStockInicial("");
+  };
+
+  // 🔁 Sincronización entre costo, ganancia y precio
   useEffect(() => {
     const c = Number(costo) || 0;
     const g = Number(ganancia) || 0;
-    
-    // Calcula el precio de venta (Costo + Ganancia)
-    const nuevoPrecioVenta = c + g;
-    
-    // Solo actualiza si el cálculo es un número válido y si es diferente al valor actual para evitar loops
-    if (!isNaN(nuevoPrecioVenta) && nuevoPrecioVenta !== Number(precioVenta)) {
-        setPrecioVenta(nuevoPrecioVenta.toFixed(2)); // Mostrar con 2 decimales
+    if (c > 0 && document.activeElement?.id === "ganancia") {
+      const nuevoPrecio = c + (c * g) / 100;
+      if (nuevoPrecio.toFixed(2) !== precioVenta) {
+        setPrecioVenta(nuevoPrecio.toFixed(2));
+      }
     }
-  }, [costo, ganancia]); // Se ejecuta cada vez que 'costo' o 'ganancia' cambian
+  }, [ganancia]);
 
+  useEffect(() => {
+    const c = Number(costo) || 0;
+    const pv = Number(precioVenta) || 0;
+    if (c > 0 && document.activeElement?.id === "precioVenta") {
+      const nuevoPorcentaje = ((pv - c) / c) * 100;
+      if (nuevoPorcentaje.toFixed(2) !== ganancia) {
+        setGanancia(nuevoPorcentaje.toFixed(2));
+      }
+    }
+  }, [precioVenta]);
 
-  const crearProducto = async e => {
-    e.preventDefault()
+  useEffect(() => {
+    const c = Number(costo) || 0;
+    const g = Number(ganancia) || 0;
+    if (c > 0 && document.activeElement?.id === "costo") {
+      const nuevoPrecio = c + (c * g) / 100;
+      if (nuevoPrecio.toFixed(2) !== precioVenta) {
+        setPrecioVenta(nuevoPrecio.toFixed(2));
+      }
+    }
+  }, [costo]);
 
-    // Validación básica
-    if (!nombre || !unidadMedida || !costo || !precioVenta) {
-      alert("Por favor, completa los campos obligatorios: Nombre, Unidad, Costo y Precio de Venta.");
+  // 🧮 Crear producto
+  const crearProducto = async (e) => {
+    e.preventDefault();
+
+    if (!nombre || !unidadMedida || !costo || !ganancia || !precioVenta) {
+      alert("Por favor, completa todos los campos obligatorios.");
       return;
     }
-    
+
+    const min = stockMinimo === "" ? 0 : Number(stockMinimo);
+    const max = stockMaximo === "" ? null : Number(stockMaximo);
+    if (max !== null && min > max) {
+      alert("El stock mínimo no puede ser mayor que el máximo.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.from("Productos").insert({
-        codigo_barras: codigoBarras || null, // Opcional
-        nombre: nombre,
+        codigo_barras: codigoBarras || null,
+        nombre,
         unidad_medida: unidadMedida,
         costo: Number(costo),
         ganancia: Number(ganancia),
         precio_venta: Number(precioVenta),
-        stock_minimo: stockMinimo ? Number(stockMinimo) : 0,
-        stock_maximo: stockMaximo ? Number(stockMaximo) : null, // Opcional
+        stock_minimo: min,
+        stock_maximo: max,
+        stock_actual: stockInicial === "" ? 0 : Number(stockInicial), // <-- stock inicial
       });
 
       if (error) throw error;
-
-      // ✅ Reiniciar valores del formulario
-      setIdProducto(null);
-      setCodigoBarras('');
-      setNombre('');
-      setUnidadMedida('');
-      setCosto('');
-      setGanancia('');
-      setPrecioVenta('');
-      setStockMinimo('');
-      setStockMaximo('');
-
+      limpiarFormulario();
+      alert("✅ Producto registrado con éxito.");
       console.log("Producto creado:", data);
-      alert("Producto registrado con éxito.");
-
     } catch (error) {
-      console.log("Error al crear producto:", error);
-      alert(`Error al registrar el producto: ${error.message}`);
+      alert(`❌ Error al registrar el producto: ${error.message}`);
+      console.error(error);
     }
-  }
+  };
 
-  const actualizarProducto = async e => {
-    e.preventDefault()
+  // 🧩 Actualizar producto
+  const actualizarProducto = async (e) => {
+    e.preventDefault();
 
     if (!idProducto) {
       alert("Primero selecciona un producto para actualizar.");
       return;
     }
-    
-    try {
-      const { data, error } = await supabase.from("Productos").update({
-        codigo_barras: codigoBarras || null,
-        nombre: nombre,
-        unidad_medida: unidadMedida,
-        costo: Number(costo),
-        ganancia: Number(ganancia),
-        precio_venta: Number(precioVenta),
-        stock_minimo: stockMinimo ? Number(stockMinimo) : 0,
-        stock_maximo: stockMaximo ? Number(stockMaximo) : null,
-      }).eq('id', idProducto); // Asumiendo que la columna de ID es 'id'
 
+    const min = stockMinimo === "" ? 0 : Number(stockMinimo);
+    const max = stockMaximo === "" ? null : Number(stockMaximo);
+    if (max !== null && min > max) {
+      alert("El stock mínimo no puede ser mayor que el máximo.");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("Productos")
+        .update({
+          codigo_barras: codigoBarras || null,
+          nombre,
+          unidad_medida: unidadMedida,
+          costo: Number(costo),
+          ganancia: Number(ganancia),
+          precio_venta: Number(precioVenta),
+          stock_minimo: min,
+          stock_maximo: max,
+          // stock_actual NO se toca aquí
+        })
+        .eq("id", idProducto);
 
       if (error) throw error;
-
-      // ✅ Reiniciar valores del formulario (opcional, o podrías solo mostrar un mensaje)
-      setIdProducto(null);
-      setCodigoBarras('');
-      setNombre('');
-      setUnidadMedida('');
-      setCosto('');
-      setGanancia('');
-      setPrecioVenta('');
-      setStockMinimo('');
-      setStockMaximo('');
-
+      limpiarFormulario();
+      alert("✅ Producto actualizado con éxito.");
       console.log("Producto actualizado:", data);
-      alert("Producto actualizado con éxito.");
-
-
     } catch (error) {
-      console.log("Error al actualizar producto:", error);
-      alert(`Error al actualizar el producto: ${error.message}`);
+      alert(`❌ Error al actualizar el producto: ${error.message}`);
+      console.error(error);
     }
-  }
+  };
 
-  // Hook para cargar datos si viene desde una ruta de edición
-  const location = useLocation();
+  // 📦 Cargar producto si viene desde "consulta-productos"
   useEffect(() => {
-    if(location.state?.producto){
+    if (location.state?.producto) {
       const p = location.state.producto;
       setIdProducto(p.id);
-      setCodigoBarras(p.codigo_barras || '');
+      setCodigoBarras(p.codigo_barras || "");
       setNombre(p.nombre);
       setUnidadMedida(p.unidad_medida);
       setCosto(p.costo.toString());
       setGanancia(p.ganancia.toString());
       setPrecioVenta(p.precio_venta.toString());
-      setStockMinimo(p.stock_minimo?.toString() || '');
-      setStockMaximo(p.stock_maximo?.toString() || '');
-      
-      // Limpiar state para que no persista en reload
+      setStockMinimo(p.stock_minimo?.toString() || "");
+      setStockMaximo(p.stock_maximo?.toString() || "");
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-
   return (
-    <div>
-      <h2>{idProducto ? "Editar Producto" : "Registrar Producto"}</h2>
-      <div className="container">
-        <div className="d-flex gap-2 justify-content-center">
-          <button 
-            type="button" 
-            className="btn btn-primary"
-            onClick={crearProducto}
-          >
-            Crear Producto
-          </button>
-          
-          <button 
-            type="button" 
-            className="btn btn-success"
-            onClick={actualizarProducto}
-            disabled={!idProducto} // Deshabilita si no hay un producto cargado para edición
-          >
-            Editar Producto
-          </button>
-            
-        </div>
-        <Link to="/consulta-productos" className="btn btn-secondary m-2">Consultar Productos</Link>
+    <div className="container mt-4">
+  <h2 className="text-center mb-4">
+    {idProducto ? "Editar Producto" : "Registrar Producto"}
+  </h2>
 
+  <form onSubmit={idProducto ? actualizarProducto : crearProducto}>
+    <div className="row g-3">
+      {/* Código de barras */}
+      <div className="col-md-6 col-lg-4">
+        <label htmlFor="codigoBarras" className="form-label">Código de Barras (opcional)</label>
+        <input
+          type="text"
+          className="form-control"
+          id="codigoBarras"
+          value={codigoBarras}
+          onChange={(e) => setCodigoBarras(e.target.value)}
+        />
       </div>
-      <form className="container w-50">
-        
-        {/* Código de Barras */}
-        <div className="row mb-3">
-          <label htmlFor="codigoBarras" className="form-label">Código de Barras (opcional):</label>
-          <input 
-            type="text" 
-            className="form-control text-center" 
-            id="codigoBarras" 
-            value={codigoBarras}
-            onChange={(e) => setCodigoBarras(e.target.value)}
+
+      {/* Nombre */}
+      <div className="col-md-6 col-lg-8">
+        <label htmlFor="nombre" className="form-label">Nombre *</label>
+        <input
+          type="text"
+          className="form-control"
+          id="nombre"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* Unidad de medida */}
+      <div className="col-md-6 col-lg-4">
+        <label htmlFor="unidadMedida" className="form-label">Unidad de Medida *</label>
+        <select
+          id="unidadMedida"
+          className="form-select"
+          value={unidadMedida}
+          onChange={(e) => setUnidadMedida(e.target.value)}
+          required
+        >
+          <option value="">Seleccione una unidad...</option>
+          <option value="piezas">Piezas</option>
+          <option value="kilos">Kilos</option>
+          <option value="litros">Litros</option>
+        </select>
+      </div>
+
+      {/* Costo */}
+      <div className="col-md-4 col-lg-2">
+        <label htmlFor="costo" className="form-label">Costo *</label>
+        <input
+          type="number"
+          className="form-control"
+          id="costo"
+          min={0}
+          step="0.01"
+          value={costo}
+          onChange={(e) => setCosto(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* Ganancia */}
+      <div className="col-md-4 col-lg-2">
+        <label htmlFor="ganancia" className="form-label">Ganancia (%) *</label>
+        <input
+          type="number"
+          className="form-control"
+          id="ganancia"
+          min={0}
+          step="0.01"
+          value={ganancia}
+          onChange={(e) => setGanancia(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* Precio de venta */}
+      <div className="col-md-4 col-lg-2">
+        <label htmlFor="precioVenta" className="form-label">Precio Venta *</label>
+        <input
+          type="number"
+          className="form-control"
+          id="precioVenta"
+          min={0}
+          step="0.01"
+          value={precioVenta}
+          onChange={(e) => setPrecioVenta(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* Stock inicial (solo al crear producto) */}
+      {!idProducto && (
+        <div className="col-md-4 col-lg-2">
+          <label htmlFor="stockInicial" className="form-label">Stock Inicial</label>
+          <input
+            type="number"
+            className="form-control"
+            id="stockInicial"
+            min={0}
+            value={stockInicial}
+            onChange={(e) => setStockInicial(e.target.value)}
           />
         </div>
+      )}
 
-        {/* Nombre */}
-        <div className="row mb-3">
-          <label htmlFor="nombre" className="form-label">Nombre *:</label>
-          <input 
-            type="text" 
-            className="form-control text-center" 
-            id="nombre" 
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-          />
-        </div>
+      {/* Stock mínimo */}
+      <div className="col-md-4 col-lg-2">
+        <label htmlFor="stockMinimo" className="form-label">Stock Mínimo</label>
+        <input
+          type="number"
+          className="form-control"
+          id="stockMinimo"
+          min={0}
+          value={stockMinimo}
+          onChange={(e) => setStockMinimo(e.target.value)}
+        />
+      </div>
 
-        {/* Unidad de medida */}
-        <div className="row mb-3">
-          <label htmlFor="unidadMedida" className="form-label">Unidad de Medida *:</label>
-            <input 
-              type="text" 
-              className="form-control text-center" 
-              id="unidadMedida" 
-              value={unidadMedida}
-              onChange={(e) => setUnidadMedida(e.target.value)}
-              required
-            />
-        </div>
-
-        {/* Costo */}
-        <div className="row mb-3">
-          <label htmlFor="costo" className="form-label">Costo *:</label>
-            <input 
-              type="number" 
-              className="form-control text-center" 
-              id="costo" 
-              min={0}
-              step="0.01"
-              value={costo}
-              onChange={(e) => setCosto(e.target.value)}
-              required
-            />
-        </div>
-        
-        {/* Ganancia */}
-        <div className="row mb-3">
-          <label htmlFor="ganancia" className="form-label">Ganancia *:</label>
-            <input 
-              type="number" 
-              className="form-control text-center" 
-              id="ganancia" 
-              min={0}
-              step="0.01"
-              value={ganancia}
-              onChange={(e) => setGanancia(e.target.value)}
-              required
-            />
-        </div>
-        
-        {/* Precio de venta (calculado) */}
-        <div className="row mb-3">
-          <label htmlFor="precioVenta" className="form-label">Precio de Venta (Costo + Ganancia) *:</label>
-            <input 
-              type="number" 
-              className="form-control text-center" 
-              id="precioVenta" 
-              min={0}
-              step="0.01"
-              value={precioVenta}
-              // Aunque se calcula, permitimos la edición manual si es necesario
-              onChange={(e) => setPrecioVenta(e.target.value)}
-              required
-            />
-        </div>
-
-        {/* Stock Mínimo */}
-        <div className="row mb-3">
-          <label htmlFor="stockMinimo" className="form-label">Stock Mínimo (opcional, por defecto 0):</label>
-            <input 
-              type="number" 
-              className="form-control text-center" 
-              id="stockMinimo"
-              min={0}
-              value={stockMinimo}
-              onChange={(e) => setStockMinimo(e.target.value)}
-            />
-        </div>
-
-        {/* Stock Máximo */}
-        <div className="row mb-3">
-          <label htmlFor="stockMaximo" className="form-label">Stock Máximo (opcional):</label>
-            <input 
-              type="number" 
-              className="form-control text-center" 
-              id="stockMaximo"
-              min={0}
-              value={stockMaximo}
-              onChange={(e) => setStockMaximo(e.target.value)}
-            />
-        </div>
-        
-      </form>
-
-      
+      {/* Stock máximo */}
+      <div className="col-md-4 col-lg-2">
+        <label htmlFor="stockMaximo" className="form-label">Stock Máximo</label>
+        <input
+          type="number"
+          className="form-control"
+          id="stockMaximo"
+          min={0}
+          value={stockMaximo}
+          onChange={(e) => setStockMaximo(e.target.value)}
+        />
+      </div>
     </div>
+
+    {/* Botones */}
+    <div className="d-flex justify-content-center gap-2 mt-4">
+      <button
+        type="submit"
+        className={`btn ${idProducto ? "btn-success" : "btn-primary"}`}
+      >
+        {idProducto ? "Actualizar" : "Crear"}
+      </button>
+      <Link to="/consulta-productos" className="btn btn-secondary">
+        Consultar Productos
+      </Link>
+      <Link to="/" className="btn btn-danger">
+        X
+      </Link>
+    </div>
+  </form>
+</div>
+
   );
 }
 
