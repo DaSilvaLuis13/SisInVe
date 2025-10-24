@@ -50,7 +50,7 @@ function ConsultaProductos() {
   // Navegar al formulario de registro/edición de productos
   const cargarProducto = (producto) => {
     // La ruta debe coincidir con la que uses para el formulario de productos
-    navigate("/registro-productos", { state: { producto } });
+    navigate("/productos", { state: { producto } });
   };
 
   // Eliminar un producto de la base de datos
@@ -91,8 +91,6 @@ function ConsultaProductos() {
   return (
     <div className="container mt-4">
       <h2>Lista de Productos ({productosFiltrados.length})</h2>
-      <Link to="/registro-productos" className="btn btn-primary mb-3">Registrar Nuevo Producto</Link>
-
 
       {/* Barra de búsqueda */}
       <input
@@ -133,10 +131,10 @@ function ConsultaProductos() {
                   <div className="d-flex gap-2 justify-content-center">
                     <button
                       type="button"
-                      className="btn btn-success btn-sm"
+                      className="btn btn-primary btn-sm"
                       onClick={() => cargarProducto(p)}
                     >
-                      Editar
+                      Seleccionar
                     </button>
                     <button
                       type="button"

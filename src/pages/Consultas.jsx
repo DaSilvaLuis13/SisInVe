@@ -1,26 +1,21 @@
 import { useState } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../services/client'
-import './Consultas.css';
 
 function Consultas() {
-  // Estados para guardar los datos de las consultas
   const [resultados, setResultados] = useState([]);
   const [titulo, setTitulo] = useState('');
-
-  // Estados para el rango de fechas
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  const [fechaInicio, setFechaInicio] = useState(null);
+  const [fechaFin, setFechaFin] = useState(null);
   const [error, setError] = useState(null);
 
-  // --- FUNCIONES DE CONSULTA ---
-
-  // 1. Productos con existencias (cantidad > 0)
   const getProductosConStock = async () => {
     setTitulo('Productos con Existencias');
     const { data, error } = await supabase
       .from('Productos')
-      .select('id,codigo_barras,nombre,costo,ganancia,stock_actual')
-      .gt('stock_actual', 0); // 'gt' significa "greater than" (mayor que)
+      .select('codigo_barras,nombre,costo,precio_venta,stock_actual')
+      .gt('stock_actual', 0);
 
     if (error) {
       setError('Error al consultar productos con stock: ' + error.message);
@@ -31,12 +26,11 @@ function Consultas() {
     }
   };
 
-  // 2. Productos sin existencias (cantidad = 0)
   const getProductosSinStock = async () => {
     setTitulo('Productos sin Existencias');
     const { data, error } = await supabase
       .from('Productos')
-      .select('id,codigo_barras,nombre,costo,ganancia,stock_actual')
+      .select('codigo_barras, nombre, costo, precio_venta')
       .or('stock_actual.eq.0,stock_actual.is.null');
 
     if (error) {
@@ -48,114 +42,140 @@ function Consultas() {
     }
   };
 
-  // 3. Ventas por rango de fechas (Crédito)
   const getVentasPorFechaCredito = async () => {
-    if (!fechaInicio || !fechaFin) {
-      setError('Por favor, selecciona ambas fechas.');
-      return;
-    }
-    // AQUÍ ESTÁ EL CAMBIO
-    setTitulo(`Ventas a Crédito desde ${fechaInicio} hasta ${fechaFin}`);
-    const { data, error } = await supabase
-      .from('Ventas')
-      .select('id,id_cliente,fecha,hora,tipo_pago,total')
-      .gte('fecha', fechaInicio) // 'gte' es "greater than or equal" (mayor o igual que)
-      .lte('fecha', fechaFin)   // 'lte' es "less than or equal" (menor o igual que)
-      .eq('tipo_pago', 'Crédito');
+  if (!fechaInicio || !fechaFin) {
+    setError('Por favor, selecciona ambas fechas.');
+    return;
+  }
 
-    if (error) {
-      setError('Error al consultar las ventas: ' + error.message);
-      setResultados([]);
-    } else {
-      setResultados(data);
-      setError(null);
-    }
-  };
-  
-  // 4. Ventas por rango de fechas (Contado)
-  const getVentasPorFechaContado = async () => {
-    if (!fechaInicio || !fechaFin) {
-      setError('Por favor, selecciona ambas fechas.');
-      return;
-    }
-    // Y AQUÍ ESTÁ EL OTRO CAMBIO
-    setTitulo(`Ventas de Contado desde ${fechaInicio} hasta ${fechaFin}`);
-    const { data, error } = await supabase
-      .from('Ventas')
-      .select('id,fecha,hora,total')
-      .gte('fecha', fechaInicio) // 'gte' es "greater than or equal" (mayor o igual que)
-      .lte('fecha', fechaFin)   // 'lte' es "less than or equal" (menor o igual que)
-      .eq('tipo_pago', 'Contado');
-    if (error) {
-      setError('Error al consultar las ventas: ' + error.message);
-      setResultados([]);
-    } else {
-      setResultados(data);
-      setError(null);
-    }
-  };
+  const inicio = fechaInicio.toISOString().split('T')[0];
+  const fin = fechaFin.toISOString().split('T')[0];
 
-  // 5. Devoluciones por rango de fechas
-  const getDevolucionesPorFecha = async () => {
-    if (!fechaInicio || !fechaFin) {
-      setError('Por favor, selecciona ambas fechas.');
-      return;
-    }
-    setTitulo(`Devoluciones desde ${fechaInicio} hasta ${fechaFin}`);
-    const { data, error } = await supabase
-      .from('Devolucion')
-      .select('*')
-      .gte('fecha', fechaInicio)
-      .lte('fecha', fechaFin);
+  setTitulo(`Ventas a Crédito desde ${inicio} hasta ${fin}`);
+  const { data, error } = await supabase
+    .from('Ventas')
+    .select('id,id_cliente,fecha,hora,total')
+    .gte('fecha', inicio)
+    .lte('fecha', fin)
+    .eq('tipo_pago', 'Crédito');
 
-    if (error) {
-      setError('Error al consultar las devoluciones: ' + error.message);
-      setResultados([]);
-    } else {
-      setResultados(data);
-      setError(null);
-    }
-  };
+  if (error) {
+    setError('Error al consultar las ventas: ' + error.message);
+    setResultados([]);
+  } else {
+    setResultados(data);
+    setError(null);
+  }
+};
+
+const getVentasPorFechaContado = async () => {
+  if (!fechaInicio || !fechaFin) {
+    setError('Por favor, selecciona ambas fechas.');
+    return;
+  }
+
+  const inicio = fechaInicio.toISOString().split('T')[0];
+  const fin = fechaFin.toISOString().split('T')[0];
+
+  setTitulo(`Ventas de Contado desde ${inicio} hasta ${fin}`);
+  const { data, error } = await supabase
+    .from('Ventas')
+    .select('id,fecha,hora,total')
+    .gte('fecha', inicio)
+    .lte('fecha', fin)
+    .eq('tipo_pago', 'Contado');
+
+  if (error) {
+    setError('Error al consultar las ventas: ' + error.message);
+    setResultados([]);
+  } else {
+    setResultados(data);
+    setError(null);
+  }
+};
+
+const getDevolucionesPorFecha = async () => {
+  if (!fechaInicio || !fechaFin) {
+    setError('Por favor, selecciona ambas fechas.');
+    return;
+  }
+
+  const inicio = fechaInicio.toISOString().split('T')[0];
+  const fin = fechaFin.toISOString().split('T')[0];
+
+  setTitulo(`Devoluciones desde ${inicio} hasta ${fin}`);
+  const { data, error } = await supabase
+    .from('Devolucion')
+    .select('*')
+    .gte('fecha', inicio)
+    .lte('fecha', fin);
+
+  if (error) {
+    setError('Error al consultar las devoluciones: ' + error.message);
+    setResultados([]);
+  } else {
+    setResultados(data);
+    setError(null);
+  }
+};
 
   return (
-    <div className="consultas-container">
-      <h1>Panel de Consultas</h1>
+    <div className="container my-5">
+            <Link to="/" className="btn btn-danger m-2">X</Link>
+      
+      <h1 className="mb-4 text-center">Panel de Consultas</h1>
 
       {/* Sección de Productos */}
-      <div className="seccion">
-        <h2>Productos</h2>
-        <button onClick={getProductosConStock}>Mostrar con Existencias</button>
-        <button onClick={getProductosSinStock}>Mostrar sin Existencias</button>
+      <div className="mb-4 p-3 border rounded shadow-sm bg-light">
+        <h2 className="mb-3">Productos</h2>
+        <div className="d-flex gap-2 flex-wrap">
+          <button className="btn btn-primary" onClick={getProductosConStock}>Mostrar con Existencias</button>
+          <button className="btn btn-danger" onClick={getProductosSinStock}>Mostrar sin Existencias</button>
+        </div>
       </div>
 
       {/* Sección de Consultas por Fecha */}
-      <div className="seccion">
-        <h2>Consultas por Rango de Fecha</h2>
-        <div className="date-picker">
-          <label>
-            Desde:
-            <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
-          </label>
-          <label>
-            Hasta:
-            <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
-          </label>
+      <div className="mb-4 p-3 border rounded shadow-sm bg-light">
+        <h2 className="mb-3">Consultas por Rango de Fecha</h2>
+        <div className="row mb-3 g-2">
+          <div className="col-md-6">
+            <label className="form-label">Desde:</label>
+            <DatePicker
+              className="form-control"
+              selected={fechaInicio}
+              onChange={(date) => setFechaInicio(date)}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Selecciona fecha inicio"
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Hasta:</label>
+            <DatePicker
+              className="form-control"
+              selected={fechaFin}
+              onChange={(date) => setFechaFin(date)}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Selecciona fecha fin"
+            />
+          </div>
         </div>
-        <button onClick={getVentasPorFechaCredito}>Buscar Ventas (Credito)</button>
-        <button onClick={getVentasPorFechaContado}>Buscar Ventas (Contado)</button>
-        <button onClick={getDevolucionesPorFecha}>Buscar Devoluciones</button>
+        <div className="d-flex gap-2 flex-wrap">
+          <button className="btn btn-success" onClick={getVentasPorFechaCredito}>Buscar Ventas (Crédito)</button>
+          <button className="btn btn-warning" onClick={getVentasPorFechaContado}>Buscar Ventas (Contado)</button>
+          <button className="btn btn-info text-white" onClick={getDevolucionesPorFecha}>Buscar Devoluciones</button>
+        </div>
       </div>
       
       {/* Mensaje de error */}
-      {error && <p className="error-message">{error}</p>}
+      {error && <div className="alert alert-danger">{error}</div>}
 
       {/* Tabla de Resultados */}
-      <div className="table-container">
+      <div className="table-responsive">
         {resultados.length > 0 ? (
           <div>
-            <h2>{titulo}</h2>
-            <table>
-              <thead>
+            <h2 className="mt-4">{titulo}</h2>
+            <table className="table table-striped table-bordered mt-2">
+              <thead className="table-dark">
                 <tr>
                   {Object.keys(resultados[0]).map((key) => (
                     <th key={key}>{key}</th>
@@ -174,7 +194,7 @@ function Consultas() {
             </table>
           </div>
         ) : (
-          <p>No hay resultados para mostrar. Realiza una consulta.</p>
+          <p className="text-center mt-3">No hay resultados para mostrar. Realiza una consulta.</p>
         )}
       </div>
     </div>

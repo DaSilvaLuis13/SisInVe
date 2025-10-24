@@ -1,6 +1,7 @@
 import './App.css'
 import { Routes, Route } from 'react-router-dom'
 
+import Layout from './components/Layout'
 import AperturaDeCaja from './pages/AperturaDeCaja'
 import CierreDeCaja from './pages/CierreDeCaja'
 import ConsultaClientes from './pages/ConsultaClientes'
@@ -20,47 +21,49 @@ import Productos from './pages/Productos'
 import Clientes from './pages/Clientes'
 import Consultas from './pages/Consultas'
 import Reportes from './pages/Reportes'
+
 function App() {
   return (
-    <div className='App'>
-      {/* Rutas */}
-      <Routes>
-        <Route path='/' element={<Home />} />
+    <Routes>
+      {/* Todas las rutas dentro del Layout */}
+      <Route path='/' element={<Layout />}>
+        <Route index element={<Home />} />
 
         {/* Productos */}
-        <Route path='/productos' element={<Productos />} />
-        <Route path='/consulta-productos' element={<ConsultaProductos />} />
-        <Route path='/movimiento-inventario' element={<MovimientoInventario />} />
+        <Route path='productos' element={<Productos />} />
+        <Route path='consulta-productos' element={<ConsultaProductos />} />
+        <Route path='movimiento-inventario' element={<MovimientoInventario />} />
 
         {/* Clientes */}
-        <Route path='/clientes' element={<Clientes />} />
-        <Route path='/consulta-clientes' element={<ConsultaClientes />} />
-        <Route path='/saldo-cliente' element={<SaldoCliente />} />
+        <Route path='clientes' element={<Clientes />} />
+        <Route path='consulta-clientes' element={<ConsultaClientes />} />
+        <Route path='saldo-cliente' element={<SaldoCliente />} />
 
         {/* Proveedores */}
-        <Route path='/proveedores' element={<Proveedores />} />
-        <Route path='/consulta-proveedores' element={<ConsultaProveedores />} />
+        <Route path='proveedores' element={<Proveedores />} />
+        <Route path='consulta-proveedores' element={<ConsultaProveedores />} />
 
         {/* Ventas y detalles */}
-        <Route path='/venta' element={<Venta />} />
-        <Route path='/detalle-venta' element={<DetalleVenta />} />
+        <Route path='venta' element={<Venta />} />
+        <Route path='detalle-venta' element={<DetalleVenta />} />
 
         {/* Devoluciones */}
-        <Route path='/devoluciones' element={<Devoluciones />} />
-        <Route path='/detalle-devoluciones' element={<DetalleDevoluciones />} />
+        <Route path='devoluciones' element={<Devoluciones />} />
+        <Route path='detalle-devoluciones' element={<DetalleDevoluciones />} />
 
         {/* Caja */}
-        <Route path='/apertura-caja' element={<AperturaDeCaja />} />
-        <Route path='/cierre-caja' element={<CierreDeCaja />} />
-        <Route path='/movimiento-caja' element={<MovimientoCaja />} />
+        <Route path='apertura-caja' element={<AperturaDeCaja />} />
+        <Route path='cierre-caja' element={<CierreDeCaja />} />
+        <Route path='movimiento-caja' element={<MovimientoCaja />} />
 
-        {/*Consultas y reportes*/}
-        <Route path='/consultas' element={<Consultas/>} />
-        <Route path='/reportes' element={<Reportes/>} />
+        {/* Consultas y reportes */}
+        <Route path='consultas' element={<Consultas />} />
+        <Route path='reportes' element={<Reportes />} />
+
         {/* Página no encontrada */}
         <Route path='*' element={<NotFound />} />
-      </Routes>
-    </div>
+      </Route>
+    </Routes>
   )
 }
 

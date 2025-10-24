@@ -1,229 +1,352 @@
-// src/pages/Devoluciones.jsx
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
-import { useNavigate } from "react-router-dom";
-import Busqueda from "../components/Busqueda"; // Asegúrate que la ruta sea correcta
+import Busqueda from "../components/Busqueda";
 
 function Devoluciones() {
   const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState([]);
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [cantidadDevolver, setCantidadDevolver] = useState(1);
-  const [tipoDevolucion, setTipoDevolucion] = useState("contado"); // 'contado' | 'credito'
-  const [clienteCredito, setClienteCredito] = useState(null);
-  const [corteCajaId, setCorteCajaId] = useState("");
+  const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
+  const [tipoBusqueda, setTipoBusqueda] = useState(null);
+  const [productoMedida, setProductoMedida] = useState(null);
+  const [cantidadMedida, setCantidadMedida] = useState("");
+  const [precioMedida, setPrecioMedida] = useState("");
+  const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+  const [seleccion, setSeleccion] = useState({ cliente: null });
+  const [tipoDevolucion, setTipoDevolucion] = useState("contado"); // contado | credito
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
 
-  // Carga inicial de productos y clientes
   useEffect(() => {
-    const cargarDatosIniciales = async () => {
-      // Cargar productos
-      const { data: dataProductos, error: errorProductos } = await supabase
+    const fetchData = async () => {
+      const { data: prodData } = await supabase
         .from("Productos")
-        .select("id, nombre, codigo_barras, precio_venta");
-      if (errorProductos) console.error("Error cargando productos:", errorProductos);
-      else setProductos(dataProductos);
+        .select("id,nombre,codigo_barras,precio_venta,unidad_medida")
+        .order("id", { ascending: true });
+      setProductos(prodData || []);
 
-      // Cargar clientes
-      const { data: dataClientes, error: errorClientes } = await supabase
+      const { data: cliData } = await supabase
         .from("Clientes")
-        .select("id, nombres, apellido_paterno, apellido_materno, limite_credito");
-      if (errorClientes) console.error("Error cargando clientes:", errorClientes);
-      else setClientes(dataClientes);
+        .select("id,nombres,apellido_paterno,apellido_materno,limite_credito")
+        .order("id", { ascending: true });
+      setClientes(cliData || []);
     };
-
-    cargarDatosIniciales();
+    fetchData();
   }, []);
 
-  // Función principal para registrar la devolución
-  const grabarDevolucion = async (e) => {
-    e.preventDefault();
-    
-    // Validaciones
-    if (!productoSeleccionado) return alert("Selecciona un producto para devolver.");
-    if (!Number.isFinite(cantidadDevolver) || cantidadDevolver <= 0)
-      return alert("La cantidad a devolver debe ser un número mayor a 0.");
-    if (tipoDevolucion === "contado" && !corteCajaId)
-      return alert("Para devolución a contado, indica el ID de corte de caja.");
-    if (tipoDevolucion === "credito" && !clienteCredito)
-      return alert("Para devolución a crédito, selecciona un cliente.");
+  const abrirBusqueda = (tipo) => {
+    setTipoBusqueda(tipo);
+    setMostrarBusqueda(true);
+  };
 
-    setIsSubmitting(true);
-    const totalDevolver = Number(productoSeleccionado.precio_venta) * Number(cantidadDevolver);
-    const fecha = new Date().toISOString().split("T")[0];
-    const hora = new Date().toTimeString().split(" ")[0];
-
-    try {
-      // 1. Insertar en la tabla 'Devolucion'
-      const { data: devolucion, error: devolucionError } = await supabase
-        .from("Devolucion")
-        .insert({
-          // Ya no se incluye "id_venta", lo que es correcto.
-          fecha,
-          hora,
-          dinero_devolver: totalDevolver,
-          id_corte: tipoDevolucion === "contado" ? corteCajaId : null,
-        })
-        .select()
-        .single();
-      if (devolucionError) throw devolucionError;
-
-      // 2. Insertar el detalle de la devolución
-      await supabase.from("DetalleDevolucion").insert({
-        id_devolucion: devolucion.id,
-        id_producto: productoSeleccionado.id,
-        cantidad: Number(cantidadDevolver),
-        precio_unitario: productoSeleccionado.precio_venta,
-        subtotal: totalDevolver,
-      });
-      
-      // 3. Aumentar el stock del producto (RPC)
-      const { error: inventarioError } = await supabase.rpc("aumentar_stock", {
-        producto_id: productoSeleccionado.id,
-        cantidad: Number(cantidadDevolver),
-      });
-      if (inventarioError) throw inventarioError;
-
-      // 4. Registrar movimiento de inventario (entrada)
-      await supabase.from("MovimientoInventario").insert({
-        id_producto: productoSeleccionado.id,
-        fecha,
-        hora,
-        tipo: "entrada",
-        cantidad: Number(cantidadDevolver),
-      });
-
-      // 5. Ajuste financiero (caja o saldo de cliente)
-      if (tipoDevolucion === "contado") {
-        const { error: cajaError } = await supabase.rpc("modificar_saldo_caja", {
-          monto_cambio: -totalDevolver, // Sale dinero de la caja
-          tipo_movimiento: "Devolucion",
-          id_corte: corteCajaId,
-        });
-        if (cajaError) throw cajaError;
-        alert("Devolución a contado registrada. El saldo de la caja ha sido ajustado.");
-      } else { // Devolución a crédito
-        await supabase.from("SaldoCliente").insert({
-          id_cliente: Number(clienteCredito.id),
-          fecha,
-          hora,
-          monto_que_pagar: -totalDevolver, // Saldo a favor (negativo en la deuda)
-          tipo_movimiento: "DevolucionCredito",
-        });
-        alert("Devolución registrada como saldo a favor del cliente.");
+  const manejarSeleccion = (item) => {
+    if (tipoBusqueda === "producto") {
+      if (item.unidad_medida === "kilos" || item.unidad_medida === "litros") {
+        setProductoMedida(item);
+        setCantidadMedida("");
+        setPrecioMedida("");
+      } else {
+        const existe = productosSeleccionados.find(p => p.id === item.id);
+        if (existe) {
+          setProductosSeleccionados(prev =>
+            prev.map(p => p.id === item.id ? { ...p, cantidad: p.cantidad + 1 } : p)
+          );
+        } else {
+          setProductosSeleccionados(prev => [...prev, { ...item, cantidad: 1 }]);
+        }
       }
+    } else if (tipoBusqueda === "cliente") {
+      setSeleccion({ cliente: item });
+      setTipoDevolucion("credito");
+    }
+    setMostrarBusqueda(false);
+  };
 
-      // 6. Limpiar formulario
-      setProductoSeleccionado(null);
-      setCantidadDevolver(1);
-      setClienteCredito(null);
-      setCorteCajaId("");
-      
-    } catch (err) {
-      console.error("Error en la transacción de devolución:", err);
-      alert(`Error al procesar la devolución: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
+  const confirmarMedida = () => {
+    const cantidad = parseFloat(cantidadMedida);
+    const precio = parseFloat(precioMedida);
+    if ((!isNaN(cantidad) && cantidad > 0) || (!isNaN(precio) && precio > 0)) {
+      setProductosSeleccionados(prev => {
+        const cantidadFinal = !isNaN(cantidad) && cantidad > 0
+          ? cantidad
+          : precio / productoMedida.precio_venta;
+
+        const existeIndex = prev.findIndex(p => p.id === productoMedida.id);
+        if (existeIndex >= 0) {
+          const actualizado = [...prev];
+          actualizado[existeIndex] = {
+            ...productoMedida,
+            cantidad: cantidadFinal,
+            precio_venta: productoMedida.precio_venta
+          };
+          return actualizado;
+        } else {
+          return [...prev, { ...productoMedida, cantidad: cantidadFinal, precio_venta: productoMedida.precio_venta }];
+        }
+      });
+      cerrarModalMedida();
     }
   };
 
-  const totalADevolver = productoSeleccionado ? (productoSeleccionado.precio_venta * cantidadDevolver).toFixed(2) : "0.00";
+  const cerrarModalMedida = () => {
+    setProductoMedida(null);
+    setCantidadMedida("");
+    setPrecioMedida("");
+  };
+
+  const actualizarCantidad = (producto, delta) => {
+    if (producto.unidad_medida === "kilos" || producto.unidad_medida === "litros") {
+      setProductoMedida(producto);
+      setCantidadMedida("");
+      setPrecioMedida("");
+    } else {
+      setProductosSeleccionados(prev =>
+        prev.map(p => p.id === producto.id ? { ...p, cantidad: Math.max(1, (p.cantidad || 1) + delta) } : p)
+      );
+    }
+  };
+
+  const quitarProducto = (id) => {
+    setProductosSeleccionados(prev => prev.filter(p => p.id !== id));
+  };
+
+  const cancelarDevolucion = () => {
+    setProductosSeleccionados([]);
+    setSeleccion({ cliente: null });
+    setTipoDevolucion("contado");
+    setProductoMedida(null);
+    setCantidadMedida("");
+    setPrecioMedida("");
+  };
+
+  const total = productosSeleccionados.reduce((acc, p) => acc + p.precio_venta * p.cantidad, 0);
+
+  const registrarDevolucion = async () => {
+  if (productosSeleccionados.length === 0) {
+    return alert("Agrega al menos un producto.");
+  }
+  if (tipoDevolucion === "credito" && !seleccion.cliente) {
+    return alert("Selecciona un cliente para crédito.");
+  }
+
+  setIsSubmitting(true);
+  const fecha = new Date().toISOString().split("T")[0];
+  const hora = new Date().toTimeString().split(" ")[0];
+
+  try {
+    // 🔹 Obtener corte del día
+    const { data: corteData } = await supabase
+      .from("CorteCaja")
+      .select("id,devoluciones_total")
+      .eq("fecha", fecha)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (!corteData || corteData.length === 0) {
+      alert("No hay un corte de caja abierto para hoy.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const idCorte = corteData[0].id;
+    const devolucionesPrevias = corteData[0].devoluciones_total || 0;
+
+    // 🔹 Insertar devolución
+    const insertData = {
+      fecha,
+      hora,
+      dinero_devolver: total,
+      id_corte: idCorte,
+      tipo_devolucion: tipoDevolucion, 
+    };
+
+    if (tipoDevolucion === "credito" && seleccion.cliente) {
+      insertData.id_cliente = seleccion.cliente.id;
+    }
+
+    const { data: devolucion, error } = await supabase
+      .from("Devolucion")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 🔹 Insertar detalle de devolución y actualizar stock
+    for (let p of productosSeleccionados) {
+      await supabase.from("DetalleDevolucion").insert({
+        id_devolucion: devolucion.id,
+        id_producto: p.id,
+        cantidad: p.cantidad,
+        precio_unitario: p.precio_venta,
+        subtotal: p.cantidad * p.precio_venta,
+      });
+
+      // Aumentar stock mediante RPC
+      await supabase.rpc("aumentar_stock", {
+        producto_id: p.id,
+        cantidad: p.cantidad,
+      });
+    }
+
+    // 🔹 Ajuste financiero si es crédito
+    if (tipoDevolucion === "credito" && seleccion.cliente) {
+      const { data: saldoData } = await supabase
+        .from("SaldoCliente")
+        .select("id,monto_que_pagar")
+        .eq("id_cliente", seleccion.cliente.id)
+        .maybeSingle();
+
+      if (saldoData) {
+        await supabase.from("SaldoCliente").update({
+          monto_que_pagar: Number(saldoData.monto_que_pagar || 0) - total,
+          fecha,
+          hora
+        }).eq("id", saldoData.id);
+      } else {
+        await supabase.from("SaldoCliente").insert({
+          id_cliente: seleccion.cliente.id,
+          monto_que_pagar: -total,
+          fecha,
+          hora
+        });
+      }
+    }
+
+    // 🔹 Actualizar corte del día
+    const nuevoDevolucionesTotal = devolucionesPrevias + total;
+    await supabase
+      .from("CorteCaja")
+      .update({ devoluciones_total: nuevoDevolucionesTotal })
+      .eq("id", idCorte);
+
+    alert("Devolución registrada correctamente.");
+    cancelarDevolucion();
+  } catch (err) {
+    console.error("Error al registrar devolución:", err);
+    alert("Ocurrió un error al procesar la devolución.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
-    <div className="container mt-4">
-      <h2 className="text-center mb-4">Registrar Devolución de Producto</h2>
-      <div className="row g-4">
-        
-        <div className="col-md-5">
-            <div className="card">
-                <div className="card-header"><h5>1. Buscar Producto</h5></div>
-                <div className="card-body">
-                    <Busqueda datos={productos} onSeleccionar={setProductoSeleccionado} />
-                </div>
-            </div>
-        </div>
+    <div className="container my-4">
+      <h2 className="text-center mb-4">Registrar Devolución</h2>
 
-        <div className="col-md-7">
-          {!productoSeleccionado ? (
-             <div className="card text-center h-100 justify-content-center">
-                <div className="card-body text-muted">
-                    <p>Selecciona un producto de la lista para continuar.</p>
-                </div>
-             </div>
-          ) : (
-            <form onSubmit={grabarDevolucion}>
-              <div className="card">
-                <div className="card-header">
-                  <h5>2. Detalles de la Devolución</h5>
-                </div>
-                <div className="card-body">
-                  <p><strong>Producto:</strong> {productoSeleccionado.nombre}</p>
-                  
-                  <div className="mb-3">
-                    <label className="form-label">Cantidad a devolver</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      min="1"
-                      value={cantidadDevolver}
-                      onChange={(e) => setCantidadDevolver(Number(e.target.value))}
-                    />
-                  </div>
+      {/* Tabla de productos */}
+      <div className="card shadow-sm mb-4">
+        <div className="card-body">
+          <h5>Agregar productos</h5>
+          <button className="btn btn-outline-primary mb-3" onClick={() => abrirBusqueda("producto")}>
+            Buscar producto
+          </button>
 
-                  <h5 className="mt-4">3. Tipo de Devolución</h5>
-                  <div className="form-check">
-                    <input type="radio" className="form-check-input" id="contado" value="contado" checked={tipoDevolucion === "contado"} onChange={(e) => setTipoDevolucion(e.target.value)} />
-                    <label className="form-check-label" htmlFor="contado">Contado (Ajusta Caja)</label>
-                  </div>
-                  <div className="form-check">
-                    <input type="radio" className="form-check-input" id="credito" value="credito" checked={tipoDevolucion === "credito"} onChange={(e) => setTipoDevolucion(e.target.value)} />
-                    <label className="form-check-label" htmlFor="credito">Crédito (Saldo a Favor del Cliente)</label>
-                  </div>
-
-                  {tipoDevolucion === "contado" && (
-                    <div className="mt-3">
-                      <label className="form-label">ID de Corte de Caja</label>
-                      <input type="text" className="form-control" value={corteCajaId} onChange={(e) => setCorteCajaId(e.target.value)} required />
-                    </div>
-                  )}
-
-                  {tipoDevolucion === "credito" && (
-                    <div className="mt-3">
-                      <label className="form-label">Selecciona el Cliente</label>
-                      {clienteCredito && <p className="mb-1"><strong>Cliente:</strong> {clienteCredito.nombres} {clienteCredito.apellido_paterno}</p>}
-                      <Busqueda datos={clientes} onSeleccionar={setClienteCredito} />
-                    </div>
-                  )}
-                </div>
-                <div className="card-footer bg-light">
-                  <h4 className="mb-3">Total a devolver: ${totalADevolver}</h4>
-                  <div className="d-flex gap-2">
-                    <button type="submit" className="btn btn-success" disabled={isSubmitting}>
-                      {isSubmitting ? 'Procesando...' : 'Registrar Devolución'}
-                    </button>
-                    <button type="button" className="btn btn-secondary" onClick={() => navigate("/home")}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </form>
-          )}
+          <div className="table-responsive">
+            <table className="table table-hover align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th>Producto</th>
+                  <th>Código</th>
+                  <th>Unidad</th>
+                  <th className="text-end">Cantidad</th>
+                  <th className="text-end">P. Unitario</th>
+                  <th className="text-end">Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {productosSeleccionados.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center">No hay productos agregados</td>
+                  </tr>
+                ) : productosSeleccionados.map(p => (
+                  <tr key={p.id}>
+                    <td>{p.nombre}</td>
+                    <td>{p.codigo_barras}</td>
+                    <td>{p.unidad_medida}</td>
+                    <td className="text-end">
+                      <div className="d-flex justify-content-end gap-1">
+                        <button className="btn btn-sm btn-outline-secondary" onClick={() => actualizarCantidad(p, -1)}>-</button>
+                        <span>{p.cantidad}</span>
+                        <button className="btn btn-sm btn-outline-secondary" onClick={() => actualizarCantidad(p, +1)}>+</button>
+                      </div>
+                    </td>
+                    <td className="text-end">${p.precio_venta.toFixed(2)}</td>
+                    <td className="text-end">${(p.precio_venta * p.cantidad).toFixed(2)}</td>
+                    <td>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => quitarProducto(p.id)}>Quitar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colSpan={5} className="text-end">Total</th>
+                  <th className="text-end">${total.toFixed(2)}</th>
+                  <th></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
+
+      {/* Modal kilos/litros */}
+      {productoMedida && (
+        <div className="modal-overlay position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
+          <div className="modal-content bg-white p-4 rounded shadow w-50">
+            <h5>Ingrese cantidad o precio para {productoMedida.nombre} ({productoMedida.unidad_medida})</h5>
+            <input type="number" className="form-control my-2" placeholder="Cantidad" value={cantidadMedida} onChange={e => {
+              setCantidadMedida(e.target.value);
+              const val = parseFloat(e.target.value);
+              setPrecioMedida(!isNaN(val) ? (val * productoMedida.precio_venta).toFixed(2) : "");
+            }} />
+            <input type="number" className="form-control my-2" placeholder="Precio total" value={precioMedida} onChange={e => {
+              setPrecioMedida(e.target.value);
+              const val = parseFloat(e.target.value);
+              setCantidadMedida(!isNaN(val) ? (val / productoMedida.precio_venta).toFixed(3) : "");
+            }} />
+            <div className="text-end mt-3">
+              <button className="btn btn-secondary me-2" onClick={cerrarModalMedida}>Cancelar</button>
+              <button className="btn btn-primary" onClick={confirmarMedida}>Agregar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Campos extra */}
+      <div className="card shadow-sm mb-4 d-flex align-items-center gap-3 p-3">
+        <p><strong>Tipo de devolución:</strong> {tipoDevolucion || "No seleccionado"}</p>
+        {tipoDevolucion === "credito" && seleccion.cliente && (
+          <p><strong>Cliente:</strong> {seleccion.cliente.nombres} {seleccion.cliente.apellido_paterno} {seleccion.cliente.apellido_materno}</p>
+        )}
+      </div>
+
+      {/* Botones */}
+      <div className="card shadow-sm mb-4">
+        <div className="card-body d-flex gap-2 flex-wrap">
+          <button className="btn btn-success" onClick={() => { setTipoDevolucion("contado"); setSeleccion({ cliente: null }); }}>Contado</button>
+          <button className="btn btn-primary" onClick={() => abrirBusqueda("cliente")}>Crédito / Cliente</button>
+          <button className="btn btn-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); }}>Quitar cliente</button>
+          <button className="btn btn-warning" onClick={cancelarDevolucion}>Cancelar devolución</button>
+          <button className="btn btn-outline-success ms-auto" onClick={registrarDevolucion} disabled={isSubmitting}>{isSubmitting ? "Procesando..." : "Registrar devolución"}</button>
+        </div>
+      </div>
+
+      {/* Modal búsqueda */}
+      {mostrarBusqueda && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
+          <div className="bg-white p-4 rounded shadow w-75">
+            <h5>Buscar {tipoBusqueda === "producto" ? "Producto" : "Cliente"}</h5>
+            <Busqueda datos={tipoBusqueda === "producto" ? productos : clientes} onSeleccionar={manejarSeleccion} />
+            <div className="text-end mt-3">
+              <button className="btn btn-secondary" onClick={() => setMostrarBusqueda(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-
-/* 
-Formulario para registrar devoluciones
-Selección de venta
-Productos a devolver y cantidad
-Dinero a devolver
-Asociación con corte de caja
-*/
-
-
 }
 
 export default Devoluciones;

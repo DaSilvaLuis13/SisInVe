@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
+import { Button } from "@mui/material";
 
 function CierreDeCaja() {
   const [corte, setCorte] = useState(null);
@@ -23,10 +24,9 @@ function CierreDeCaja() {
         setCorte(ultimoCorte);
         setHoraFinal(new Date().toTimeString().split(" ")[0]);
 
-        // Calcular dinero actual en caja según movimientos
         const total = 
           Number(ultimoCorte.fondo_inicial || 0) +
-          Number(ultimoCorte.ventas_total || 0) + // Solo ventas contado
+          Number(ultimoCorte.ventas_total || 0) +
           Number(ultimoCorte.abonos_total || 0) +
           Number(ultimoCorte.depositos_total || 0) -
           Number(ultimoCorte.devoluciones_total || 0) -
@@ -34,8 +34,6 @@ function CierreDeCaja() {
           Number(ultimoCorte.retiros_total || 0);
 
         setDineroActualEnCaja(total);
-
-        // Calcular diferencia entre fondo inicial y dinero actual en caja
         setDiferencia(total - Number(ultimoCorte.fondo_inicial || 0));
       }
     };
@@ -43,6 +41,7 @@ function CierreDeCaja() {
     fetchUltimoCorte();
   }, []);
 
+  // Función para cerrar la caja
   const cerrarCaja = async () => {
     try {
       const { data, error } = await supabase
@@ -50,7 +49,7 @@ function CierreDeCaja() {
         .update({
           hora_fin: horaFinal,
           fondo_actual: dineroActualEnCaja,
-          diferencia: diferencia // Se guarda la diferencia calculada
+          diferencia: diferencia
         })
         .eq("id", corte.id);
 
@@ -61,6 +60,47 @@ function CierreDeCaja() {
     } catch (error) {
       console.error("Error al cerrar caja:", error.message);
     }
+  };
+
+  // Función para imprimir ticket
+  const imprimirTicket = () => {
+    const ticketContent = `
+      <div style="font-family: monospace; width: 280px; padding: 10px;">
+        <div style="text-align:center;">
+          <h3 style="margin:0;">Corte de Caja</h3>
+          <p style="margin:0;">===========================</p>
+        </div>
+
+        <p>ID Corte: ${corte.id}</p>
+        <p>Fecha: ${corte.fecha}</p>
+        <p>Hora Inicio: ${corte.hora_inicio}</p>
+        <p>Hora Fin: ${horaFinal}</p>
+        <p>Fondo Inicial: $${corte.fondo_inicial}</p>
+
+        <p>---------------------------</p>
+        <p>Detalle de Movimientos:</p>
+        <p>Ventas Totales    : $${corte.ventas_total || 0}</p>
+        <p>Devoluciones      : $${corte.devoluciones_total || 0}</p>
+        <p>Fiado             : $${corte.fiado_total || 0}</p>
+        <p>Abonos            : $${corte.abonos_total || 0}</p>
+        <p>Pagos Proveedores : $${corte.pagos_total || 0}</p>
+        <p>Retiros           : $${corte.retiros_total || 0}</p>
+        <p>Depósitos         : $${corte.depositos_total || 0}</p>
+        <p>---------------------------</p>
+
+        <p>Dinero Actual     : $${dineroActualEnCaja}</p>
+        <p>Diferencia        : $${diferencia}</p>
+
+        <p style="text-align:center;">===========================</p>
+        <p style="text-align:center;">¡Gracias por su preferencia!</p>
+      </div>
+    `;
+
+    const printWindow = window.open("", "_blank", "width=300,height=600");
+    printWindow.document.write(ticketContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   if (!corte) return <div>Cargando corte...</div>;
@@ -87,17 +127,16 @@ function CierreDeCaja() {
 
       <hr />
 
-      <div className="mb-3">
-        <strong>Dinero Actual en Caja:</strong> {dineroActualEnCaja}
-      </div>
-      <div className="mb-3">
-        <strong>Diferencia:</strong> {diferencia}
-      </div>
+      <div className="mb-3"><strong>Dinero Actual en Caja:</strong> {dineroActualEnCaja}</div>
+      <div className="mb-3"><strong>Diferencia:</strong> {diferencia}</div>
 
-      <div className="d-flex justify-content-center">
-        <button className="btn btn-success" onClick={cerrarCaja}>
+      <div className="d-flex justify-content-center gap-2">
+        <Button variant="contained" color="success" onClick={cerrarCaja}>
           Cerrar Caja
-        </button>
+        </Button>
+        <Button variant="outlined" color="primary" onClick={imprimirTicket}>
+          Imprimir Ticket
+        </Button>
       </div>
     </div>
   );
