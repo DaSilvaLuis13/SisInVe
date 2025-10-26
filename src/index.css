@@ -1,0 +1,13 @@
+.container-first {
+    display: flex;
+    justify-content: center;
+    background-color: #4A5D74;
+}
+
+
+
+
+/* Sombra suave */
+.shadow-sm {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}

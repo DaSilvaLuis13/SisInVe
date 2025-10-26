@@ -1,0 +1,71 @@
+
+.clientes-card {
+    background-color: #fef6e4;
+    border-radius: 1rem;
+    width: 900px;
+    box-shadow: 8px 8px 10px #ff8c42;
+}
+
+.clientes-titulo {
+    color: #ff8c42;
+}
+
+.clientes-label {
+    font-weight: 500;
+    color: #555;
+}
+
+.clientes-input {
+    border-radius: 0.5rem;
+    border: 1px solid #ffd6a5;
+    background-color: #fff7f0;
+}
+
+.clientes-feedback {
+    color: #e63946;
+}
+
+.clientes-botones .clientes-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.clientes-btn-registrar {
+    background-color: #ffd6a5;
+    color: #333;
+}
+
+.clientes-btn-registrar:hover {
+    background-color: #ffcc80;
+}
+
+.clientes-btn-actualizar {
+    background-color: #ffb77d;
+    color: #333;
+}
+
+.clientes-btn-actualizar:hover {
+    background-color: #ffa45b;
+}
+
+.clientes-btn-consultar {
+    background-color: #cce7ff;
+    color: #333;
+    text-decoration: none;
+}
+
+.clientes-btn-consultar:hover {
+    background-color: #99d0ff;
+}
+
+.clientes-btn-cancelar {
+    background-color: #ffb3b3;
+    color: #333;
+}
+
+.clientes-btn-cancelar:hover {
+    background-color: #ff9999;
+}

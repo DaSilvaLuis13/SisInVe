@@ -1,0 +1,118 @@
+/* Contenedor principal */
+.container-productos {
+  background-color: #fdf6f0; /* fondo pastel claro */
+  padding: 2rem;
+  border-radius: 12px;
+    box-shadow: 8px 8px 10px #ff8c42;
+}
+
+/* Título del formulario */
+.title-productos {
+  color: #6a5d7b; /* tono suave */
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+/* Inputs personalizados */
+.input-productos,
+.select-productos {
+  background-color: #fff8f5;
+  border: 1px solid #d1c0c0;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-productos:focus,
+.select-productos:focus {
+  border-color: #a48db1;
+  box-shadow: 0 0 0 3px rgba(164, 141, 177, 0.2);
+  outline: none;
+}
+
+/* Botones principales */
+.btn-ac {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-ac:hover {
+  transform: translateY(-2px);
+}
+
+/* Botón de consultar */
+.btn-c {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  background-color: #ffe6e6;
+  color: #6a5d7b;
+  border: 1px solid #d1c0c0;
+  text-decoration: none;
+}
+
+.btn-c:hover {
+  background-color: #ffd9d9;
+}
+
+.btn-success-actualizar {
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    background-color: #ffe6e6;
+    color: #6a5d7b;
+    border: 1px solid #d1c0c0;
+    text-decoration: none;
+}
+
+.btn-success-actualizar {
+      background-color: #ffd9d9;
+
+}
+/* Botón cancelar */
+.btn-cancelar {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  background-color: #f5c6c6;
+  color: #6a5d7b;
+  border: none;
+}
+
+.btn-cancelar:hover {
+  background-color: #f1aaaa;
+}
+
+/* Ajustes para labels */
+.form-label {
+  font-weight: bold;
+  color: #6a5d7b;
+}
+
+/* Inputs tipo número centrados (opcional) */
+input[type="number"].input-productos {
+  text-align: right;
+}
+
+/* Mensajes de validación y placeholders opcionales */
+::placeholder {
+  color: #b8a8b8;
+  opacity: 1;
+}
+
+/* Para filas y columnas, dejamos Bootstrap intacto */
+.row.g-4 > .col {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Efecto card suave si quieres agrupar el formulario */
+.container-productos form {
+  background-color: #fff7f2;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}

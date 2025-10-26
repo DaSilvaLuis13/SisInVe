@@ -1,0 +1,90 @@
+.consulta-clientes-container {
+    background-color: #fef6e4;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 8px 8px 10px #ff8c42;
+
+}
+
+.consulta-clientes-title {
+  color: #ff8c42;
+}
+
+.consulta-clientes-search {
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 0.5rem;
+  border: 1px solid #ffd6a5;
+  background-color: #fff7f0;
+}
+
+.consulta-clientes-table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.consulta-clientes-table {
+  width: 100%;
+  border-radius: 0.5rem;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.consulta-clientes-thead th {
+  background-color: #ffd6a5;
+  color: #333;
+  font-weight: 600;
+}
+
+.consulta-clientes-row td {
+  background-color: #fff7f0;
+  vertical-align: middle;
+}
+
+.consulta-clientes-stock-bajo {
+  background-color: #ffb3b3;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 0.3rem;
+}
+
+.consulta-clientes-stock-alto {
+  background-color: #cce7ff;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 0.3rem;
+}
+
+.consulta-clientes-btn {
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.consulta-clientes-btn-seleccionar {
+  background-color: #ffd6a5;
+  color: #333;
+}
+
+.consulta-clientes-btn-seleccionar:hover {
+  background-color: #ffcc80;
+}
+
+.consulta-clientes-btn-eliminar {
+  background-color: #ffb3b3;
+  color: #333;
+}
+
+.consulta-clientes-btn-eliminar:hover {
+  background-color: #ff9999;
+}
+
+.consulta-clientes-btn-disabled {
+  background-color: #e0e0e0;
+  color: #888;
+  cursor: not-allowed;
+}

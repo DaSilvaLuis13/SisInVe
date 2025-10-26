@@ -1,0 +1,33 @@
+
+.proveedores-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 1rem;
+  
+}
+
+.proveedores-card {
+  background-color: #fdf6f0;
+  border-radius: 12px;
+    box-shadow: 8px 8px 10px #ff8c42;
+  padding: 2rem;
+}
+
+.proveedores-titulo {
+  color: #6b4c3b;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.proveedores-form .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.proveedores-botones {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}

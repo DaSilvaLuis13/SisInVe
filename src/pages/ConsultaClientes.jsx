@@ -1,11 +1,7 @@
-//Aquí van los import que necesites incorporar elementos de la carpeta components
-import { useState, useEffect } from 'react'
-import { supabase } from '../services/client'
+import { useState, useEffect } from 'react';
+import { supabase } from '../services/client';
 import { useNavigate } from "react-router-dom";
-
-/* 
-Formulario de consulta/listado de clientes con barra de búsqueda
-*/
+import './consultaClientes.css'; // Tu CSS con variables de color
 
 function ConsultaClientes() {
   const [clientes, setClientes] = useState([]);
@@ -13,7 +9,7 @@ function ConsultaClientes() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchClientes = async () => {
+    const fetchClientesConDeuda = async () => {
       const { data, error } = await supabase
         .from("Clientes")
         .select("*")
@@ -22,11 +18,25 @@ function ConsultaClientes() {
       if (error) {
         console.error("Error al cargar clientes:", error);
       } else {
-        setClientes(data);
+        // Verificar deudas para cada cliente
+        const clientesConDeuda = await Promise.all(
+          data.map(async (c) => {
+            const { data: saldoData } = await supabase
+              .from("SaldoCliente")
+              .select("monto_que_pagar")
+              .eq("id_cliente", c.id);
+
+            return {
+              ...c,
+              tieneDeuda: saldoData?.some(d => parseFloat(d.monto_que_pagar) > 0)
+            };
+          })
+        );
+        setClientes(clientesConDeuda);
       }
     };
 
-    fetchClientes();
+    fetchClientesConDeuda();
   }, []);
 
   const cargarCliente = (cliente) => {
@@ -51,28 +61,31 @@ function ConsultaClientes() {
     }
   };
 
-  // Filtrar clientes según el texto del input
   const clientesFiltrados = clientes.filter(c =>
     c.nombres.toLowerCase().includes(filtro.toLowerCase()) ||
     c.apellido_paterno.toLowerCase().includes(filtro.toLowerCase()) ||
     c.apellido_materno.toLowerCase().includes(filtro.toLowerCase())
   );
 
-  return (
-    <div className="container mt-4">
-      <h2>Lista de Clientes</h2>
+    return (
+  <div className="consulta-clientes-container py-5">
+    <h2 className="consulta-clientes-title text-center mb-4">Lista de Clientes</h2>
 
-      {/* Barra de búsqueda */}
+    {/* Barra de búsqueda */}
+    <div className="mb-3 text-center">
       <input
         type="text"
-        className="form-control mb-3"
+        className="form-control consulta-clientes-search"
         placeholder="Buscar por nombre o apellido..."
         value={filtro}
         onChange={(e) => setFiltro(e.target.value)}
       />
+    </div>
 
-      <table className="table table-striped table-hover">
-        <thead>
+    {/* Tabla responsive */}
+    <div className="table-responsive consulta-clientes-table-wrapper">
+      <table className="table table-striped table-hover consulta-clientes-table">
+        <thead className="consulta-clientes-thead">
           <tr>
             <th>Nombre</th>
             <th>Apellido Paterno</th>
@@ -86,27 +99,30 @@ function ConsultaClientes() {
         </thead>
         <tbody>
           {clientesFiltrados.map((cliente) => (
-            <tr key={cliente.id}>
+            <tr key={cliente.id} className="consulta-clientes-row">
               <td>{cliente.nombres}</td>
               <td>{cliente.apellido_paterno}</td>
               <td>{cliente.apellido_materno}</td>
               <td>{cliente.domicilio}</td>
               <td>{cliente.telefono}</td>
-              <td>{cliente.limite_credito}</td>
+              <td className={cliente.limite_credito < 1000 ? "consulta-clientes-stock-bajo" : "consulta-clientes-stock-alto"}>
+                {cliente.limite_credito}
+              </td>
               <td>
                 <button
                   type="button"
-                  className="btn btn-success btn-sm"
+                  className="consulta-clientes-btn consulta-clientes-btn-seleccionar"
                   onClick={() => cargarCliente(cliente)}
                 >
-                  Editar
+                  Seleccionar
                 </button>
               </td>
               <td>
                 <button
                   type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => eliminarCliente(cliente.id)}
+                  className={`consulta-clientes-btn consulta-clientes-btn-eliminar ${cliente.tieneDeuda ? "consulta-clientes-btn-disabled" : ""}`}
+                  onClick={() => !cliente.tieneDeuda && eliminarCliente(cliente.id)}
+                  disabled={cliente.tieneDeuda}
                 >
                   Eliminar
                 </button>
@@ -116,7 +132,9 @@ function ConsultaClientes() {
         </tbody>
       </table>
     </div>
-  )
+  </div>
+);
+
 }
 
 export default ConsultaClientes;

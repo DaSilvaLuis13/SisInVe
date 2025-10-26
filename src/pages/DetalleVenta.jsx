@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "./detalleVenta.css";
 
 function DetalleVenta() {
   const [ventas, setVentas] = useState([]);
   const [detalleVenta, setDetalleVenta] = useState([]);
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
-  // Filtros
   const [filtroId, setFiltroId] = useState("");
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroTipoPago, setFiltroTipoPago] = useState("");
@@ -17,7 +17,6 @@ function DetalleVenta() {
 
   const hoy = new Date();
 
-  // Función para formatear fechas a YYYY/MM/DD
   const formatearFechaSupabase = (date) => {
     if (!date) return null;
     const yyyy = date.getFullYear();
@@ -26,7 +25,6 @@ function DetalleVenta() {
     return `${yyyy}/${mm}/${dd}`;
   };
 
-  // Cargar ventas
   useEffect(() => {
     const fetchVentas = async () => {
       let query = supabase
@@ -55,7 +53,6 @@ function DetalleVenta() {
     fetchVentas();
   }, [fechaInicio, fechaFin, filtroId, filtroTipoPago]);
 
-  // Cargar detalle de venta
   useEffect(() => {
     if (!ventaSeleccionada) return;
 
@@ -77,7 +74,6 @@ function DetalleVenta() {
     fetchDetalle();
   }, [ventaSeleccionada]);
 
-  // Filtrar por cliente
   const ventasFiltradas = ventas.filter((v) => {
     if (filtroCliente && v.cliente) {
       const nombreCompleto = `${v.cliente.nombres} ${v.cliente.apellido_paterno} ${v.cliente.apellido_materno}`.toLowerCase();
@@ -87,37 +83,42 @@ function DetalleVenta() {
   });
 
   return (
-    <div className="container mt-4">
-      <h2>Detalle de Ventas</h2>
+  <div className="detalleventa-container mt-4">
+    <h2 className="text-center mb-4">Detalle de Ventas</h2>
 
-      {/* Filtros */}
-      <div className="mb-3">
-        <input
-          type="text"
-          placeholder="ID de venta"
-          value={filtroId}
-          onChange={(e) => setFiltroId(e.target.value)}
-          className="form-control mb-2"
-        />
-        <input
-          type="text"
-          placeholder="Cliente (solo créditos)"
-          value={filtroCliente}
-          onChange={(e) => setFiltroCliente(e.target.value)}
-          className="form-control mb-2"
-        />
-        <select
-          value={filtroTipoPago}
-          onChange={(e) => setFiltroTipoPago(e.target.value)}
-          className="form-control mb-2"
-        >
-          <option value="">Tipo de pago</option>
-          <option value="Contado">Contado</option>
-          <option value="Crédito">Crédito</option>
-        </select>
-
-        {/* DatePickers */}
-        <div className="d-flex gap-2 mb-2">
+    {/* Filtros */}
+    <div className="detalleventa-filtros card p-3 mb-4 shadow-sm">
+      <div className="row g-2">
+        <div className="col-md-2">
+          <input
+            type="text"
+            placeholder="ID de venta"
+            value={filtroId}
+            onChange={(e) => setFiltroId(e.target.value)}
+            className="form-control"
+          />
+        </div>
+        <div className="col-md-3">
+          <input
+            type="text"
+            placeholder="Cliente (solo créditos)"
+            value={filtroCliente}
+            onChange={(e) => setFiltroCliente(e.target.value)}
+            className="form-control"
+          />
+        </div>
+        <div className="col-md-2">
+          <select
+            value={filtroTipoPago}
+            onChange={(e) => setFiltroTipoPago(e.target.value)}
+            className="form-select"
+          >
+            <option value="">Tipo de pago</option>
+            <option value="Contado">Contado</option>
+            <option value="Crédito">Crédito</option>
+          </select>
+        </div>
+        <div className="col-md-5 d-flex gap-2">
           <DatePicker
             selected={fechaInicio}
             onChange={(date) => {
@@ -140,9 +141,11 @@ function DetalleVenta() {
           />
         </div>
       </div>
+    </div>
 
-      {/* Tabla de ventas */}
-      <table className="table table-striped table-hover">
+    {/* Tabla de ventas */}
+    <div className="detalleventa-table card p-3 mb-4 shadow-sm">
+      <table className="table table-striped mb-0">
         <thead>
           <tr>
             <th>ID Venta</th>
@@ -177,49 +180,51 @@ function DetalleVenta() {
           ))}
         </tbody>
       </table>
-
-      {/* Ticket de venta */}
-      {ventaSeleccionada && (
-        <div className="ticket p-3 mt-4 border">
-          <h4>Supermercado X</h4>
-          <p>Venta #{ventaSeleccionada.id}</p>
-          <p>
-            Fecha: {ventaSeleccionada.fecha} Hora: {ventaSeleccionada.hora}
-          </p>
-          {ventaSeleccionada.cliente && (
-            <p>
-              Cliente:{" "}
-              {`${ventaSeleccionada.cliente.nombres} ${ventaSeleccionada.cliente.apellido_paterno} ${ventaSeleccionada.cliente.apellido_materno}`}
-            </p>
-          )}
-          <p>Tipo de Pago: {ventaSeleccionada.tipo_pago}</p>
-          <hr />
-          <table className="table table-sm">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cant</th>
-                <th>P.Unit</th>
-                <th>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detalleVenta.map((d, i) => (
-                <tr key={i}>
-                  <td>{d.producto?.nombre}</td>
-                  <td>{d.cantidad}</td>
-                  <td>{d.precio_unitario}</td>
-                  <td>{d.subtotal}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <hr />
-          <p>Total: {ventaSeleccionada.total}</p>
-        </div>
-      )}
     </div>
-  );
+
+    {/* Ticket de venta */}
+    {ventaSeleccionada && (
+      <div className="detalleventa-ticket card p-3 shadow-sm">
+        <h4>Supermercado X</h4>
+        <p>Venta #{ventaSeleccionada.id}</p>
+        <p>
+          Fecha: {ventaSeleccionada.fecha} Hora: {ventaSeleccionada.hora}
+        </p>
+        {ventaSeleccionada.cliente && (
+          <p>
+            Cliente:{" "}
+            {`${ventaSeleccionada.cliente.nombres} ${ventaSeleccionada.cliente.apellido_paterno} ${ventaSeleccionada.cliente.apellido_materno}`}
+          </p>
+        )}
+        <p>Tipo de Pago: {ventaSeleccionada.tipo_pago}</p>
+        <hr />
+        <table className="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cant</th>
+              <th>P.Unit</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detalleVenta.map((d, i) => (
+              <tr key={i}>
+                <td>{d.producto?.nombre}</td>
+                <td>{d.cantidad}</td>
+                <td>{d.precio_unitario}</td>
+                <td>{d.subtotal}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <hr />
+        <p>Total: {ventaSeleccionada.total}</p>
+      </div>
+    )}
+  </div>
+);
+
 }
 
 export default DetalleVenta;

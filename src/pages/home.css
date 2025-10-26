@@ -1,0 +1,41 @@
+/* Contenedor principal centrado */
+.home-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Ocupa toda la altura de la pantalla */
+  background: linear-gradient(135deg, #4a90e2, #50e3c2); /* Fondo degradado */
+}
+
+/* Tarjeta principal */
+.home-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 3rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Efecto hover */
+.home-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Título */
+.home-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #333333;
+  margin-bottom: 1rem;
+}
+
+/* Texto */
+.home-text {
+  font-size: 1.1rem;
+  color: #555555;
+  line-height: 1.6;
+}

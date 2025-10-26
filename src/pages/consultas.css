@@ -1,0 +1,84 @@
+.consultas-container {
+    background-color: #fef6e4;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 8px 8px 10px #ff8c42;
+
+}
+
+.consultas-title {
+  color: #ff8c42;
+}
+
+.consultas-card {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+}
+
+.consultas-btn {
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.consultas-btn-primary {
+  background-color: #ffd6a5;
+  color: #333;
+}
+
+.consultas-btn-primary:hover {
+  background-color: #ffcc80;
+}
+
+.consultas-btn-danger-outline {
+  background-color: #fff;
+  color: #ff6b6b;
+  border: 1px solid #ff6b6b;
+}
+
+.consultas-btn-danger-outline:hover {
+  background-color: #ffb3b3;
+  color: #333;
+}
+
+.consultas-btn-success {
+  background-color: #cce7ff;
+  color: #333;
+}
+
+.consultas-btn-warning {
+  background-color: #ffeaa7;
+  color: #333;
+}
+
+.consultas-btn-info {
+  background-color: #b2f2bb;
+  color: #333;
+}
+
+.consultas-alert {
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.consultas-table {
+  border-radius: 0.5rem;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.consultas-thead th {
+  background-color: #ffd6a5;
+  color: #333;
+}
+
+.consultas-row td {
+  background-color: #fff7f0;
+}
+
+.consultas-no-results {
+  font-style: italic;
+  color: #555;
+}
