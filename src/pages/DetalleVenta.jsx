@@ -82,149 +82,192 @@ function DetalleVenta() {
     return true;
   });
 
-  return (
-  <div className="detalleventa-container mt-4">
-    <h2 className="text-center mb-4">Detalle de Ventas</h2>
+  const imprimirVentaSeleccionada = () => {
+    if (!ventaSeleccionada) return alert("No hay venta seleccionada");
 
-    {/* Filtros */}
-    <div className="detalleventa-filtros card p-3 mb-4 shadow-sm">
-      <div className="row g-2">
-        <div className="col-md-2">
-          <input
-            type="text"
-            placeholder="ID de venta"
-            value={filtroId}
-            onChange={(e) => setFiltroId(e.target.value)}
-            className="form-control"
-          />
-        </div>
-        <div className="col-md-3">
-          <input
-            type="text"
-            placeholder="Cliente (solo créditos)"
-            value={filtroCliente}
-            onChange={(e) => setFiltroCliente(e.target.value)}
-            className="form-control"
-          />
-        </div>
-        <div className="col-md-2">
-          <select
-            value={filtroTipoPago}
-            onChange={(e) => setFiltroTipoPago(e.target.value)}
-            className="form-select"
-          >
-            <option value="">Tipo de pago</option>
-            <option value="Contado">Contado</option>
-            <option value="Crédito">Crédito</option>
-          </select>
-        </div>
-        <div className="col-md-5 d-flex gap-2">
-          <DatePicker
-            selected={fechaInicio}
-            onChange={(date) => {
-              setFechaInicio(date);
-              if (fechaFin && date > fechaFin) setFechaFin(date);
-            }}
-            className="form-control"
-            placeholderText="Fecha inicio"
-            dateFormat="yyyy/MM/dd"
-            maxDate={hoy}
-          />
-          <DatePicker
-            selected={fechaFin}
-            onChange={(date) => setFechaFin(date)}
-            className="form-control"
-            placeholderText="Fecha fin"
-            dateFormat="yyyy/MM/dd"
-            minDate={fechaInicio || null}
-            maxDate={hoy}
-          />
+    let html = `<h3>Supermercado X - Venta #${ventaSeleccionada.id}</h3>`;
+    html += `<p>Fecha: ${ventaSeleccionada.fecha} Hora: ${ventaSeleccionada.hora}</p>`;
+    if (ventaSeleccionada.cliente) {
+      html += `<p>Cliente: ${ventaSeleccionada.cliente.nombres} ${ventaSeleccionada.cliente.apellido_paterno} ${ventaSeleccionada.cliente.apellido_materno}</p>`;
+    }
+    html += `<p>Tipo de Pago: ${ventaSeleccionada.tipo_pago}</p>`;
+    html += "<hr/>";
+    html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
+    html += "<tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th></tr>";
+    detalleVenta.forEach(d => {
+      html += `<tr>
+        <td>${d.producto?.nombre || "-"}</td>
+        <td>${d.cantidad}</td>
+        <td>${d.precio_unitario}</td>
+        <td>${d.subtotal}</td>
+      </tr>`;
+    });
+    html += `</table>`;
+    html += `<p>Total: ${ventaSeleccionada.total}</p>`;
+    html += `<p>Gracias por su compra</p>`;
+
+    const printWindow = window.open("", "PRINT", "height=600,width=400");
+    if (printWindow) {
+      printWindow.document.write("<html><head><title>Ticket</title></head><body>");
+      printWindow.document.write(html);
+      printWindow.document.write("</body></html>");
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    } else {
+      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+    }
+  };
+
+  return (
+    <div className="detalleventa-container mt-4">
+      <h2 className="text-center mb-4">Detalle de Ventas</h2>
+
+      {/* Filtros */}
+      <div className="detalleventa-filtros card p-3 mb-4 shadow-sm">
+        <div className="row g-2">
+          <div className="col-md-2">
+            <input
+              type="text"
+              placeholder="ID de venta"
+              value={filtroId}
+              onChange={(e) => setFiltroId(e.target.value)}
+              className="form-control"
+            />
+          </div>
+          <div className="col-md-3">
+            <input
+              type="text"
+              placeholder="Cliente (solo créditos)"
+              value={filtroCliente}
+              onChange={(e) => setFiltroCliente(e.target.value)}
+              className="form-control"
+            />
+          </div>
+          <div className="col-md-2">
+            <select
+              value={filtroTipoPago}
+              onChange={(e) => setFiltroTipoPago(e.target.value)}
+              className="form-select"
+            >
+              <option value="">Tipo de pago</option>
+              <option value="Contado">Contado</option>
+              <option value="Crédito">Crédito</option>
+            </select>
+          </div>
+          <div className="col-md-5 d-flex gap-2">
+            <DatePicker
+              selected={fechaInicio}
+              onChange={(date) => {
+                setFechaInicio(date);
+                if (fechaFin && date > fechaFin) setFechaFin(date);
+              }}
+              className="form-control"
+              placeholderText="Fecha inicio"
+              dateFormat="yyyy/MM/dd"
+              maxDate={hoy}
+            />
+            <DatePicker
+              selected={fechaFin}
+              onChange={(date) => setFechaFin(date)}
+              className="form-control"
+              placeholderText="Fecha fin"
+              dateFormat="yyyy/MM/dd"
+              minDate={fechaInicio || null}
+              maxDate={hoy}
+            />
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Tabla de ventas */}
-    <div className="detalleventa-table card p-3 mb-4 shadow-sm">
-      <table className="table table-striped mb-0">
-        <thead>
-          <tr>
-            <th>ID Venta</th>
-            <th>ID Cliente</th>
-            <th>Nombre Cliente</th>
-            <th>Fecha</th>
-            <th>Tipo de Pago</th>
-            <th>Seleccionar</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ventasFiltradas.map((v) => (
-            <tr key={v.id}>
-              <td>{v.id}</td>
-              <td>{v.id_cliente || "-"}</td>
-              <td>
-                {v.cliente
-                  ? `${v.cliente.nombres} ${v.cliente.apellido_paterno} ${v.cliente.apellido_materno}`
-                  : "-"}
-              </td>
-              <td>{v.fecha}</td>
-              <td>{v.tipo_pago}</td>
-              <td>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setVentaSeleccionada(v)}
-                >
-                  Seleccionar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Ticket de venta */}
-    {ventaSeleccionada && (
-      <div className="detalleventa-ticket card p-3 shadow-sm">
-        <h4>Supermercado X</h4>
-        <p>Venta #{ventaSeleccionada.id}</p>
-        <p>
-          Fecha: {ventaSeleccionada.fecha} Hora: {ventaSeleccionada.hora}
-        </p>
-        {ventaSeleccionada.cliente && (
-          <p>
-            Cliente:{" "}
-            {`${ventaSeleccionada.cliente.nombres} ${ventaSeleccionada.cliente.apellido_paterno} ${ventaSeleccionada.cliente.apellido_materno}`}
-          </p>
-        )}
-        <p>Tipo de Pago: {ventaSeleccionada.tipo_pago}</p>
-        <hr />
-        <table className="table table-sm mb-0">
+      {/* Tabla de ventas */}
+      <div className="detalleventa-table card p-3 mb-4 shadow-sm">
+        <table className="table table-striped mb-0">
           <thead>
             <tr>
-              <th>Producto</th>
-              <th>Cant</th>
-              <th>P.Unit</th>
-              <th>Subtotal</th>
+              <th>ID Venta</th>
+              <th>ID Cliente</th>
+              <th>Nombre Cliente</th>
+              <th>Fecha</th>
+              <th>Tipo de Pago</th>
+              <th>Seleccionar</th>
             </tr>
           </thead>
           <tbody>
-            {detalleVenta.map((d, i) => (
-              <tr key={i}>
-                <td>{d.producto?.nombre}</td>
-                <td>{d.cantidad}</td>
-                <td>{d.precio_unitario}</td>
-                <td>{d.subtotal}</td>
+            {ventasFiltradas.map((v) => (
+              <tr key={v.id}>
+                <td>{v.id}</td>
+                <td>{v.id_cliente || "-"}</td>
+                <td>
+                  {v.cliente
+                    ? `${v.cliente.nombres} ${v.cliente.apellido_paterno} ${v.cliente.apellido_materno}`
+                    : "-"}
+                </td>
+                <td>{v.fecha}</td>
+                <td>{v.tipo_pago}</td>
+                <td>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setVentaSeleccionada(v)}
+                  >
+                    Seleccionar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <hr />
-        <p>Total: {ventaSeleccionada.total}</p>
       </div>
-    )}
-  </div>
-);
 
+      {/* Ticket de venta */}
+      {ventaSeleccionada && (
+        <div className="detalleventa-ticket card p-3 shadow-sm">
+          <h4>Supermercado X</h4>
+          <p>Venta #{ventaSeleccionada.id}</p>
+          <p>
+            Fecha: {ventaSeleccionada.fecha} Hora: {ventaSeleccionada.hora}
+          </p>
+          {ventaSeleccionada.cliente && (
+            <p>
+              Cliente:{" "}
+              {`${ventaSeleccionada.cliente.nombres} ${ventaSeleccionada.cliente.apellido_paterno} ${ventaSeleccionada.cliente.apellido_materno}`}
+            </p>
+          )}
+          <p>Tipo de Pago: {ventaSeleccionada.tipo_pago}</p>
+          <hr />
+          <table className="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cant</th>
+                <th>P.Unit</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detalleVenta.map((d, i) => (
+                <tr key={i}>
+                  <td>{d.producto?.nombre}</td>
+                  <td>{d.cantidad}</td>
+                  <td>{d.precio_unitario}</td>
+                  <td>{d.subtotal}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <hr />
+          <p>Total: {ventaSeleccionada.total}</p>
+          <button
+            className="btn btn-outline-success mt-3"
+            onClick={imprimirVentaSeleccionada}
+          >
+            Imprimir Ticket
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default DetalleVenta;

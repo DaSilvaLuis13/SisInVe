@@ -16,6 +16,7 @@ function Devoluciones() {
   const [tipoDevolucion, setTipoDevolucion] = useState("contado");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch productos y clientes
   useEffect(() => {
     const fetchData = async () => {
       const { data: prodData } = await supabase
@@ -120,6 +121,44 @@ function Devoluciones() {
 
   const total = productosSeleccionados.reduce((acc, p) => acc + p.precio_venta * p.cantidad, 0);
 
+  // Generar HTML del ticket
+  const generarTicketHTML = () => {
+    let html = `<h3>Ticket de Devolución (${tipoDevolucion})</h3>`;
+    if (seleccion.cliente) {
+      html += `<p>Cliente: ${seleccion.cliente.nombres} ${seleccion.cliente.apellido_paterno} ${seleccion.cliente.apellido_materno}</p>`;
+    }
+    html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
+    html += "<tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Subtotal</th></tr>";
+    productosSeleccionados.forEach(p => {
+      html += `<tr>
+        <td>${p.nombre}</td>
+        <td>${p.cantidad}</td>
+        <td>${p.precio_venta.toFixed(2)}</td>
+        <td>${(p.precio_venta * p.cantidad).toFixed(2)}</td>
+      </tr>`;
+    });
+    html += `<tr><th colspan="3">Total</th><th>${total.toFixed(2)}</th></tr>`;
+    html += "</table>";
+    html += `<p>Fecha: ${new Date().toLocaleString()}</p>`;
+    return html;
+  };
+
+  const imprimirTicket = () => {
+    const ticketHTML = generarTicketHTML();
+    const printWindow = window.open("", "PRINT", "height=600,width=400");
+    if (printWindow) {
+      printWindow.document.write("<html><head><title>Ticket</title></head><body>");
+      printWindow.document.write(ticketHTML);
+      printWindow.document.write("</body></html>");
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    } else {
+      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+    }
+  };
+
   const registrarDevolucion = async () => {
     if (productosSeleccionados.length === 0) return alert("Agrega al menos un producto.");
     if (tipoDevolucion === "credito" && !seleccion.cliente) return alert("Selecciona un cliente para crédito.");
@@ -216,6 +255,12 @@ function Devoluciones() {
     }
   };
 
+  const handleRegistrarClick = async () => {
+    const deseaTicket = window.confirm("¿Desea imprimir el ticket de la devolución?");
+    if (deseaTicket) imprimirTicket();
+    await registrarDevolucion();
+  };
+
   return (
     <div className="devoluciones-container container my-4">
       <h2 className="text-center mb-4">Registrar Devolución</h2>
@@ -227,7 +272,6 @@ function Devoluciones() {
           <button className="btn btn-outline-primary mb-3" onClick={() => abrirBusqueda("producto")}>
             Buscar producto
           </button>
-
           <div className="table-responsive">
             <table className="table table-hover align-middle">
               <thead>
@@ -316,7 +360,7 @@ function Devoluciones() {
           <button className="btn btn-primary" onClick={() => abrirBusqueda("cliente")}>Crédito / Cliente</button>
           <button className="btn btn-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); }}>Quitar cliente</button>
           <button className="btn btn-warning" onClick={cancelarDevolucion}>Cancelar devolución</button>
-          <button className="btn btn-outline-success ms-auto" onClick={registrarDevolucion} disabled={isSubmitting}>
+          <button className="btn btn-outline-success ms-auto" onClick={handleRegistrarClick} disabled={isSubmitting}>
             {isSubmitting ? "Procesando..." : "Registrar devolución"}
           </button>
         </div>

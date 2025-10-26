@@ -45,6 +45,12 @@ function MovimientoCaja() {
       return;
     }
 
+    if (parseFloat(monto) <= 0) {
+      alert("Ingresa una cantidad superior a 0");
+      return;
+    }
+
+
     const fecha = new Date().toISOString().split("T")[0];
     const hora = new Date().toLocaleTimeString("es-ES", { hour12: false });
 
