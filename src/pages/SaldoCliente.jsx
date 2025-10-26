@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react'
-import { supabase } from "../services/client"
+import { useState, useEffect } from 'react';
+import { supabase } from "../services/client";
+import './saldoCliente.css'; // Importa el CSS propio
 
 function SaldoCliente() {
   const [clientes, setClientes] = useState([]);
   const [filtro, setFiltro] = useState('');
-
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [saldoCliente, setSaldoCliente] = useState(null);
   const [compraReciente, setCompraReciente] = useState(null);
-
   const [montoAbono, setMontoAbono] = useState('');
   const [idCorte, setIdCorte] = useState(null);
   const [corteActual, setCorteActual] = useState(null);
@@ -20,9 +19,7 @@ function SaldoCliente() {
         .from("Clientes")
         .select("id, nombres, apellido_paterno, apellido_materno, limite_credito")
         .order('id', { ascending: true });
-
-      if (error) console.error("Error al cargar clientes:", error);
-      else setClientes(data);
+      if (!error) setClientes(data);
     };
     fetchClientes();
   }, []);
@@ -36,7 +33,6 @@ function SaldoCliente() {
         .order("id", { ascending: false })
         .limit(1)
         .single();
-
       if (!error && data) {
         setIdCorte(data.id);
         setCorteActual(data);
@@ -70,7 +66,6 @@ function SaldoCliente() {
         .order("fecha", { ascending: false })
         .order("hora", { ascending: false })
         .limit(1);
-
       if (!error) setCompraReciente(data.length ? data[0] : null);
     };
 
@@ -84,29 +79,37 @@ function SaldoCliente() {
     c.apellido_materno.toLowerCase().includes(filtro.toLowerCase())
   );
 
-  // Función para abonar al saldo del cliente
   const abonarCliente = async () => {
     if (!montoAbono || !clienteSeleccionado || !idCorte) {
       alert("Completa todos los campos necesarios.");
       return;
     }
 
+    if (saldoCliente.monto_que_pagar <= 0) {
+      alert("El cliente no tiene deuda pendiente.");
+      return;
+    }
+
+    const montoFloat = parseFloat(montoAbono);
+    if (montoFloat > saldoCliente.monto_que_pagar) {
+      alert(`El monto a abonar no puede ser mayor a la deuda (${saldoCliente.monto_que_pagar.toFixed(2)})`);
+      return;
+    }
+
     const fecha = new Date().toISOString().split("T")[0];
     const hora = new Date().toLocaleTimeString("es-ES", { hour12: false });
-    const montoFloat = parseFloat(montoAbono);
 
     try {
-      // Actualizar saldo existente del cliente
       const nuevoMonto = parseFloat((saldoCliente.monto_que_pagar - montoFloat).toFixed(2));
 
+      // Actualizar saldo
       const { error: saldoError } = await supabase
         .from("SaldoCliente")
         .update({ monto_que_pagar: nuevoMonto, fecha, hora })
         .eq("id_cliente", clienteSeleccionado.id);
-
       if (saldoError) throw saldoError;
 
-      // Actualizar totales del corte
+      // Actualizar corte
       const nuevosTotales = { ...corteActual };
       nuevosTotales.abonos_total = parseFloat((nuevosTotales.abonos_total + montoFloat).toFixed(2));
       nuevosTotales.fondo_actual = parseFloat((nuevosTotales.fondo_actual + montoFloat).toFixed(2));
@@ -118,16 +121,9 @@ function SaldoCliente() {
           fondo_actual: nuevosTotales.fondo_actual
         })
         .eq("id", idCorte);
-
       if (corteError) throw corteError;
 
-      // Refrescar estados locales
-      setSaldoCliente(prev => ({
-        ...prev,
-        monto_que_pagar: nuevoMonto,
-        fecha,
-        hora
-      }));
+      setSaldoCliente(prev => ({ ...prev, monto_que_pagar: nuevoMonto, fecha, hora }));
       setCorteActual(nuevosTotales);
       setMontoAbono('');
       alert("Abono registrado correctamente.");
@@ -138,45 +134,51 @@ function SaldoCliente() {
   };
 
   return (
-    <div>SaldoCliente
+    <div className="container-saldo">
+      <h2 className="title-saldo">Saldo de Clientes</h2>
+
       <input
         type="text"
-        className="form-control mb-3"
+        className="input-saldo"
         placeholder="Buscar por nombre o apellido..."
         value={filtro}
         onChange={(e) => setFiltro(e.target.value)}
       />
 
-      <table className="table table-striped table-hover">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Apellido Paterno</th>
-            <th>Apellido Materno</th>
-            <th>Límite de Crédito</th>
-            <th>Seleccionar</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clientesFiltrados.map((cliente) => (
-            <tr key={cliente.id}>
-              <td>{cliente.nombres}</td>
-              <td>{cliente.apellido_paterno}</td>
-              <td>{cliente.apellido_materno}</td>
-              <td>{cliente.limite_credito}</td>
-              <td>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setClienteSeleccionado(cliente)}
-                >
-                  Selección
-                </button>
-              </td>
+      <div className="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Apellido Paterno</th>
+              <th>Apellido Materno</th>
+              <th>Límite de Crédito</th>
+              <th>Seleccionar</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {clientesFiltrados.map(cliente => (
+              <tr key={cliente.id}>
+                <td>{cliente.nombres}</td>
+                <td>{cliente.apellido_paterno}</td>
+                <td>{cliente.apellido_materno}</td>
+                <td className={cliente.limite_credito < 1000 ? "stock-bajo" : "stock-alto"}>
+                  {cliente.limite_credito}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn-select"
+                    onClick={() => setClienteSeleccionado(cliente)}
+                  >
+                    Seleccionar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {clienteSeleccionado && (
         <section className="cliente">
@@ -184,8 +186,21 @@ function SaldoCliente() {
           <p><strong>Apellido Paterno:</strong> {clienteSeleccionado.apellido_paterno}</p>
           <p><strong>Apellido Materno:</strong> {clienteSeleccionado.apellido_materno}</p>
           <p><strong>Límite Crédito:</strong> {clienteSeleccionado.limite_credito}</p>
+
+          <button
+            className="btn-limpiar"
+            onClick={() => {
+              setClienteSeleccionado(null);
+              setSaldoCliente(null);
+              setCompraReciente(null);
+              setMontoAbono('');
+            }}
+          >
+            Limpiar selección
+          </button>
         </section>
       )}
+
 
       {saldoCliente && (
         <section className="saldoCliente">
@@ -199,11 +214,21 @@ function SaldoCliente() {
             <input
               type="number"
               placeholder="Monto a abonar"
-              className="form-control mb-2"
+              className="input-saldo"
               value={montoAbono}
               onChange={(e) => setMontoAbono(e.target.value)}
+              disabled={saldoCliente.monto_que_pagar <= 0}
             />
-            <button className="btn btn-success" onClick={abonarCliente}>Abonar</button>
+            <button
+              className="btn-abonar"
+              onClick={abonarCliente}
+              disabled={saldoCliente.monto_que_pagar <= 0 || montoAbono <= 0}
+            >
+              Abonar
+            </button>
+            {saldoCliente.monto_que_pagar <= 0 && (
+              <p className="alert-saldo">El cliente no tiene deuda pendiente.</p>
+            )}
           </div>
         </section>
       )}
@@ -217,7 +242,7 @@ function SaldoCliente() {
         </section>
       )}
     </div>
-  )
+  );
 }
 
 export default SaldoCliente;

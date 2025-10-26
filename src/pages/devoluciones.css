@@ -1,0 +1,48 @@
+.devoluciones-container {
+    background-color: #fef6e4;
+    padding: 2rem;
+    box-shadow: 8px 8px 10px #ff8c42;
+}
+
+.devoluciones-title {
+  color: #ff8c42;
+}
+
+.devoluciones-filtros-card {
+  background-color: #fff7f0;
+}
+
+.devoluciones-input,
+.devoluciones-select,
+.devoluciones-datepicker {
+  border-radius: 0.5rem;
+}
+
+.devoluciones-table {
+  background-color: #fff7f0;
+}
+
+.devoluciones-row td {
+  background-color: #fff;
+  color: #333;
+}
+
+.devoluciones-btn-primary {
+  background-color: #ffd6a5;
+  border: none;
+  color: #333;
+  border-radius: 0.5rem;
+}
+
+.devoluciones-btn-primary:hover {
+  background-color: #ffcc80;
+}
+
+.devoluciones-ticket-card {
+  background-color: #fff7f0;
+}
+
+.devoluciones-ticket-table th {
+  background-color: #ffd6a5;
+  color: #333;
+}

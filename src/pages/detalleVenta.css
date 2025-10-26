@@ -1,0 +1,72 @@
+/* =========================
+   DETALLE VENTA
+========================= */
+
+/* Contenedor general */
+.detalleventa-container {
+  background-color: #fef6e4;
+  padding: 2rem;
+  box-shadow: 8px 8px 10px #ff8c42;
+}
+
+/* Título */
+.detalleventa-container h2 {
+  color: #ff8c42;
+}
+
+/* Filtros */
+.detalleventa-filtros {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+/* Inputs */
+.detalleventa-filtros .form-control {
+  border-radius: 0.5rem;
+}
+
+/* Tabla */
+.detalleventa-table {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Filas */
+.detalleventa-table tr td {
+  background-color: #fff;
+  color: #333;
+}
+
+/* Botones */
+.btn-primary {
+  background-color: #ffd6a5;
+  border: none;
+  color: #333;
+  border-radius: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: #ffcc80;
+}
+
+/* Ticket */
+.detalleventa-ticket {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+/* Tabla en ticket */
+.detalleventa-ticket table {
+  background-color: #fff;
+  border-radius: 0.5rem;
+}
+
+/* Encabezados secundarios */
+.table-secondary th {
+  background-color: #ffd6a5 !important;
+  color: #333 !important;
+}

@@ -1,0 +1,74 @@
+/* =========================
+   DETALLE DEVOLUCIONES
+========================= */
+
+/* Contenedor general */
+.detalle-devoluciones-container {
+  background-color: #fef6e4;
+  padding: 2rem;
+  box-shadow: 8px 8px 10px #ff8c42;
+}
+
+/* Título */
+.detalle-devoluciones-container h2 {
+  color: #ff8c42;
+}
+
+/* Filtros */
+.devoluciones-filtros-card {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+/* Inputs y selects */
+.devoluciones-input,
+.devoluciones-select,
+.devoluciones-datepicker {
+  border-radius: 0.5rem;
+}
+
+/* Tabla */
+.devoluciones-table {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Filas */
+.devoluciones-row td {
+  background-color: #fff;
+  color: #333;
+}
+
+/* Botón principal */
+.devoluciones-btn-primary {
+  background-color: #ffd6a5;
+  border: none;
+  color: #333;
+  border-radius: 0.5rem;
+}
+
+.devoluciones-btn-primary:hover {
+  background-color: #ffcc80;
+}
+
+/* Ticket */
+.devoluciones-ticket-card {
+  background-color: #fff7f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+/* Tabla en ticket */
+.devoluciones-ticket-table {
+  background-color: #fff;
+  border-radius: 0.5rem;
+}
+
+/* Encabezados secundarios */
+.table-secondary th {
+  background-color: #ffd6a5 !important;
+  color: #333 !important;
+}

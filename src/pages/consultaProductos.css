@@ -1,0 +1,76 @@
+
+.consulta-productos-container {
+    background-color: #fef6e4;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 8px 8px 10px #ff8c42;
+
+}
+
+.consulta-productos-title {
+  color: #ff8c42;
+}
+
+.consulta-productos-search {
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 0.5rem;
+  border: 1px solid #ffd6a5;
+  background-color: #fff7f0;
+}
+
+.consulta-productos-table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.consulta-productos-table {
+  width: 100%;
+  border-radius: 0.5rem;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.consulta-productos-thead th {
+  background-color: #ffd6a5;
+  color: #333;
+  font-weight: 600;
+}
+
+.consulta-productos-row td {
+  background-color: #fff7f0;
+  vertical-align: middle;
+}
+
+.consulta-productos-btn {
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.consulta-productos-btn-seleccionar {
+  background-color: #ffd6a5;
+  color: #333;
+}
+
+.consulta-productos-btn-seleccionar:hover {
+  background-color: #ffcc80;
+}
+
+.consulta-productos-btn-eliminar {
+  background-color: #ffb3b3;
+  color: #333;
+}
+
+.consulta-productos-btn-eliminar:hover {
+  background-color: #ff9999;
+}
+
+.consulta-productos-alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: #fff7f0;
+  color: #555;
+}

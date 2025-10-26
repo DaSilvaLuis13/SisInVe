@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Busqueda from "../components/Busqueda";
 import { supabase } from "../services/client";
+import "./movimientoInventario.css"; // Importación del CSS moderno
 
 function MovimientoInventario() {
   const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
@@ -69,11 +70,9 @@ function MovimientoInventario() {
 
     if (tipoMovimiento === "entrada") {
       stock += productoSeleccionado.cantidad;
-      
     } else if (tipoMovimiento === "salida") {
       stock -= productoSeleccionado.cantidad;
       if (stock < 0) stock = 0;
-      
     }
 
     const { error: updateError } = await supabase
@@ -85,7 +84,6 @@ function MovimientoInventario() {
       console.error(`Error al actualizar el stock del producto ${productoSeleccionado.id}:`, updateError);
     }
 
-    // 🔹 Actualizar el estado local de productos para reflejar el cambio inmediatamente
     setProductos((prev) =>
       prev.map((p) =>
         p.id === productoSeleccionado.id ? { ...p, stock_actual: stock } : p
@@ -96,107 +94,123 @@ function MovimientoInventario() {
     setTipoMovimiento("");
   };
 
-  // 🔹 Abrir búsqueda y mantener productos actualizados
   const abrirBusqueda = () => {
     setMostrarBusqueda(true);
   };
 
   return (
-    <div>
-      {/* Botones de movimiento */}
-      <div className="card shadow-sm mb-4">
-        <div className="card-body">
-          <div className="d-flex justify-content-center flex-wrap gap-2 mb-3">
-            <button
-              className={`btn btn-success ${tipoMovimiento === "entrada" ? "active" : ""}`}
-              onClick={() => setTipoMovimiento("entrada")}
-            >
-              Entrada
-            </button>
-            <button
-              className={`btn btn-primary ${tipoMovimiento === "salida" ? "active" : ""}`}
-              onClick={() => setTipoMovimiento("salida")}
-            >
-              Salida
-            </button>
-            <button
-              className="btn btn-warning"
-              onClick={() => setProductoSeleccionado(null)}
-            >
-              Cancelar
-            </button>
+  <div className="movimiento-inventario-container container py-4">
+
+    {/* Botones tipo movimiento */}
+    <div className="movimiento-inventario-botones d-flex justify-content-center flex-wrap gap-2 mb-4">
+      <button
+        className={`mov-btn mov-btn-entrada ${tipoMovimiento === "entrada" ? "active" : ""}`}
+        onClick={() => setTipoMovimiento("entrada")}
+      >
+        ➕ Entrada
+      </button>
+      <button
+        className={`mov-btn mov-btn-salida ${tipoMovimiento === "salida" ? "active" : ""}`}
+        onClick={() => setTipoMovimiento("salida")}
+      >
+        ➖ Salida
+      </button>
+      <button
+        className="mov-btn mov-btn-cancel"
+        onClick={() => setProductoSeleccionado(null)}
+      >
+        ✖ Cancelar
+      </button>
+    </div>
+
+    {/* Acciones secundarias */}
+    <div className="movimiento-inventario-acciones d-flex justify-content-center flex-wrap gap-2 mb-4">
+      {tipoMovimiento && productoSeleccionado && (
+        <button
+          className="mov-btn mov-btn-confirm"
+          onClick={actualizarStock}
+        >
+          ✅ Confirmar {tipoMovimiento}
+        </button>
+      )}
+      <button className="mov-btn mov-btn-search" onClick={abrirBusqueda}>
+        🔍 Buscar Producto
+      </button>
+    </div>
+
+    {/* Card producto seleccionado */}
+    {productoSeleccionado && (
+      <div className="movimiento-inventario-card-producto card p-3 mb-4 shadow-sm">
+        <h5 className="text-center mb-3">Producto Seleccionado</h5>
+        <div className="movimiento-inventario-card-body d-flex flex-column gap-3 align-items-start text-center">
+
+          {/* Información del producto */}
+          <div className="movimiento-inventario-info-producto w-100">
+            <strong>{productoSeleccionado.nombre}</strong> <br />
+            Código: {productoSeleccionado.codigo_barras || "N/A"} <br />
+            Unidad: {productoSeleccionado.unidad_medida}
           </div>
 
-          <div className="d-flex justify-content-center flex-wrap gap-2">
-            {tipoMovimiento && productoSeleccionado && (
-              <button className="btn btn-info" onClick={actualizarStock}>
-                Confirmar {tipoMovimiento}
-              </button>
-            )}
-            <button className="btn btn-secondary" onClick={abrirBusqueda}>
-              Buscar Producto
+          {/* Stock */}
+          <div className="movimiento-inventario-stock-producto w-100">
+            Stock actual: <strong>{productoSeleccionado.stock_actual}</strong> <br />
+            Mínimo: {productoSeleccionado.stock_minimo} | Máximo: {productoSeleccionado.stock_maximo}
+            <div className="movimiento-inventario-progress-stock mt-1">
+              <div
+                className="movimiento-inventario-progress-stock-inner"
+                style={{
+                  width: `${Math.min(
+                    (productoSeleccionado.stock_actual / productoSeleccionado.stock_maximo) * 100,
+                    100
+                  )}%`,
+                }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Cantidad */}
+          <div className="movimiento-inventario-cantidad-producto w-100">
+            <label className="form-label mb-1">Cantidad</label>
+            <input
+              type="number"
+              min="1"
+              value={productoSeleccionado.cantidad}
+              onChange={(e) => actualizarCantidad(e.target.value)}
+              className="movimiento-inventario-input-cantidad form-control"
+            />
+          </div>
+
+          
+
+        </div>
+      </div>
+    )}
+
+    {/* Modal de búsqueda */}
+    {mostrarBusqueda && (
+      <div className="movimiento-inventario-modal-overlay modal-overlay">
+        <div className="movimiento-inventario-modal-busqueda modal-busqueda">
+          <h5>Buscar Producto</h5>
+          <Busqueda
+            datos={productos}
+            onSeleccionar={manejarSeleccion}
+            mostrarStock={true}
+          />
+          <div className="text-end mt-3">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setMostrarBusqueda(false)}
+            >
+              Cerrar
             </button>
           </div>
         </div>
       </div>
+    )}
 
-      {/* Producto seleccionado */}
-      {productoSeleccionado && (
-        <div className="mb-4">
-          <h5 className="text-center mb-3">Producto seleccionado</h5>
-          <div className="card p-3 shadow-sm">
-            <div className="row align-items-center">
-              <div className="col-md-4 mb-2 mb-md-0">
-                <strong>{productoSeleccionado.nombre}</strong> <br />
-                Código: {productoSeleccionado.codigo_barras} <br />
-                Unidad: {productoSeleccionado.unidad_medida}
-              </div>
+  </div>
+);
 
-              <div className="col-md-3 mb-2 mb-md-0">
-                Stock actual: <strong>{productoSeleccionado.stock_actual}</strong> <br />
-                Mínimo: {productoSeleccionado.stock_minimo} | Máximo: {productoSeleccionado.stock_maximo}
-              </div>
-
-              <div className="col-md-3 mb-2 mb-md-0">
-                <label className="form-label mb-1">Cantidad</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={productoSeleccionado.cantidad}
-                  onChange={(e) => actualizarCantidad(e.target.value)}
-                  className="form-control"
-                />
-              </div>
-
-              <div className="col-md-2 d-flex justify-content-end">
-                <button
-                  className="btn btn-danger"
-                  onClick={() => setProductoSeleccionado(null)}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de búsqueda */}
-      {mostrarBusqueda && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
-          <div className="bg-white p-4 rounded shadow w-75">
-            <h5>Buscar Producto</h5>
-            <Busqueda datos={productos} onSeleccionar={manejarSeleccion} mostrarStock={true} />
-            <div className="text-end mt-3">
-              <button className="btn btn-secondary" onClick={() => setMostrarBusqueda(false)}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 export default MovimientoInventario;

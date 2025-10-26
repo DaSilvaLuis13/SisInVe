@@ -67,7 +67,7 @@ function Layout() {
   ];
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh" }}>
+    <div className="d-flex container-first" style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
       <nav
         className="bg-light border-end p-3"

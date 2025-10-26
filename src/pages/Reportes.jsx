@@ -6,6 +6,8 @@ import { supabase } from '../services/client';
 import { Link } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./reportes.css";
 
 function Reportes() {
   const [tipoReportes, setTipoReportes] = useState('ventas');
@@ -17,32 +19,28 @@ function Reportes() {
     ventas: 'Ventas',
     devolucion: 'Devolucion',
     corteCaja: 'CorteCajaGanancia',
-    productosMasVendidos: 'ProductosMasVendidos',
+    productosVendidos: 'ProductosMasVendidos',
     productosDevueltos: 'ProductosDevueltos',
     ventasTipoPago: 'VentasTipoPago',
     stockMinimo: 'StockMinimo'
   };
 
+  // --- CONSULTA DE DATOS ---
   useEffect(() => {
     const fetchData = async () => {
       const tabla = tablas[tipoReportes];
       try {
-        let query;
-
         if (tipoReportes === 'corteCaja' && fechaInicio && fechaFin) {
-          // Ejecutar función personalizada de Postgres para CorteCaja
-          const { data, error } = await supabase
-            .rpc('CorteCajaGanancia', {
-              f_i: fechaInicio.toISOString().split('T')[0],
-              f_f: fechaFin.toISOString().split('T')[0]
-            });
+          const { data, error } = await supabase.rpc('CorteCajaGanancia', {
+            f_i: fechaInicio.toISOString().split('T')[0],
+            f_f: fechaFin.toISOString().split('T')[0],
+          });
           if (!error) setData(data);
           else console.error('Error en CorteCajaGanancia:', error);
           return;
         }
 
-        query = supabase.from(tabla).select('*');
-
+        let query = supabase.from(tabla).select('*');
         if (['ventas', 'devolucion'].includes(tipoReportes)) {
           if (fechaInicio) query = query.gte('fecha', fechaInicio.toISOString().split('T')[0]);
           if (fechaFin) query = query.lte('fecha', fechaFin.toISOString().split('T')[0]);
@@ -58,23 +56,26 @@ function Reportes() {
     fetchData();
   }, [tipoReportes, fechaInicio, fechaFin]);
 
-  // Calcular totales para CorteCaja
+  // --- FUNCIONES AUXILIARES ---
+  const exportarExcel = () => {
+    if (data.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, tipoReportes);
+    XLSX.writeFile(wb, `reporte_${tipoReportes}.xlsx`);
+  };
+
+  const imprimir = () => window.print();
+
   const calcularTotales = (rows) => {
     if (rows.length === 0) return null;
-    const keys = ['ventas_total', 'devoluciones_total', 'pagos_total', 'retiros_total', 'depositos_total', 'abonos_total', 'total_entradas', 'total_salidas', 'ganancia_neta'];
+    const keys = [
+      'ventas_total', 'devoluciones_total', 'pagos_total', 'retiros_total',
+      'depositos_total', 'abonos_total', 'total_entradas', 'total_salidas', 'ganancia_neta'
+    ];
     const total = {};
     keys.forEach(k => total[k] = rows.reduce((sum, r) => sum + Number(r[k] || 0), 0));
-    return {
-      id: 'TOTAL',
-      fecha: '—',
-      hora_inicio: '',
-      hora_fin: '',
-      fondo_inicial: '',
-      ...total,
-      fiado_total: '',
-      fondo_actual: '',
-      diferencia: ''
-    };
+    return { id: 'TOTAL', fecha: '—', ...total };
   };
 
   const columnas = {
@@ -106,11 +107,11 @@ function Reportes() {
       { field: 'retiros_total', headerName: 'Retiros', width: 80 },
       { field: 'depositos_total', headerName: 'Depósitos', width: 90 },
       { field: 'abonos_total', headerName: 'Abonos', width: 90 },
-      { field: 'total_entradas', headerName: 'Total Entradas', width: 120 },
-      { field: 'total_salidas', headerName: 'Total Salidas', width: 120 },
+      { field: 'total_entradas', headerName: 'Entradas', width: 110 },
+      { field: 'total_salidas', headerName: 'Salidas', width: 110 },
       { field: 'ganancia_neta', headerName: 'Ganancia Neta', width: 120 },
     ],
-    productosMasVendidos: [
+    productosVendidos: [
       { field: 'id_producto', headerName: 'ID Producto', width: 100 },
       { field: 'nombre_producto', headerName: 'Nombre', width: 200 },
       { field: 'total_cantidad', headerName: 'Cantidad Total', width: 130 },
@@ -138,66 +139,47 @@ function Reportes() {
     ]
   };
 
-  const exportarExcel = () => {
-    if (data.length === 0) return;
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tipoReportes);
-    XLSX.writeFile(wb, `reporte_${tipoReportes}.xlsx`);
-  };
-
-  const imprimir = () => window.print();
-
   const datosConTotales = tipoReportes === 'corteCaja' ? [...data, calcularTotales(data)] : data;
 
   return (
-    <div style={{ height: 520, width: '100%', padding: '20px' }}>
-      <h1>Reportes</h1>
+    <div className="container reportes-container">
+      <h2 className="reportes-titulo text-center mb-4">📊 Reportes del Sistema</h2>
 
-      <div style={{ marginBottom: 10 }}>
-        <Button variant="outlined" onClick={() => setTipoReportes('ventas')}>Ventas</Button>
-        <Button variant="outlined" onClick={() => setTipoReportes('devolucion')}>Devoluciones</Button>
-        <Button variant="outlined" onClick={() => setTipoReportes('corteCaja')}>Cortes</Button>
-        <Button variant="outlined" onClick={() => setTipoReportes('productosMasVendidos')}>Más Vendidos</Button>
-        <Button variant="outlined" onClick={() => setTipoReportes('productosDevueltos')}>Devueltos</Button>
-        <Button variant="outlined" onClick={() => setTipoReportes('ventasTipoPago')}>Ventas por Pago</Button>
-        <Button variant="outlined" onClick={() => setTipoReportes('stockMinimo')}>Stock Mínimo</Button>
+      <div className="mb-3 text-center">
+        {Object.keys(tablas).map((tipo) => (
+          <Button
+            key={tipo}
+            variant={tipoReportes === tipo ? "contained" : "outlined"}
+            color="primary"
+            onClick={() => setTipoReportes(tipo)}
+            className="btn-reportes"
+          >
+            {tipo.replace(/([A-Z])/g, ' $1')}
+          </Button>
+        ))}
       </div>
 
       {['ventas', 'devolucion', 'corteCaja'].includes(tipoReportes) && (
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-          <DatePicker
-            selected={fechaInicio}
-            onChange={setFechaInicio}
-            dateFormat="yyyy-MM-dd"
-            placeholderText="Fecha inicio"
-          />
-          <DatePicker
-            selected={fechaFin}
-            onChange={setFechaFin}
-            dateFormat="yyyy-MM-dd"
-            placeholderText="Fecha fin"
-          />
+        <div className="filtros-fecha justify-content-center">
+          <DatePicker selected={fechaInicio} onChange={setFechaInicio} placeholderText="Fecha inicio" />
+          <DatePicker selected={fechaFin} onChange={setFechaFin} placeholderText="Fecha fin" />
         </div>
       )}
 
-      <Link to="/" className="btn btn-danger m-2">X</Link>
-      <div style={{ marginBottom: '10px' }}>
-        <Button variant="contained" color="primary" onClick={exportarExcel} style={{ marginRight: '10px' }}>Exportar a Excel</Button>
+      <div className="d-flex justify-content-center align-items-center exportar-imprimir">
+        <Button variant="contained" color="success" onClick={exportarExcel} className="me-2">Exportar Excel</Button>
         <Button variant="contained" color="secondary" onClick={imprimir}>Imprimir</Button>
       </div>
 
-      <DataGrid
-        rows={datosConTotales.map((row, index) => ({
-          ...row,
-          _gridId: row.id || row.id_producto || row.tipo_pago || index
-        }))}
-        columns={columnas[tipoReportes]}
-        pageSize={10}
-        rowsPerPageOptions={[10, 20, 50]}
-        components={{ Toolbar: GridToolbar }}
-        getRowId={(row) => row._gridId}
-      />
+      <div style={{ height: 520, width: '100%' }}>
+        <DataGrid
+          rows={datosConTotales.map((r, i) => ({ ...r, _gridId: r.id || r.id_producto || r.tipo_pago || i }))}
+          columns={columnas[tipoReportes]}
+          pageSize={10}
+          components={{ Toolbar: GridToolbar }}
+          getRowId={(r) => r._gridId}
+        />
+      </div>
     </div>
   );
 }

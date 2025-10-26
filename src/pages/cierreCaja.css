@@ -1,0 +1,57 @@
+.cierre-card {
+  background-color: #fef6e4; /* pastel claro */
+  border-radius: 1rem;
+  width: 800px;
+  box-shadow: 8px 8px 10px #ff8c42;
+}
+
+.cierre-title {
+  color: #ff8c42;
+}
+
+.cierre-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+.cierre-label {
+  color: #555;
+  background-color: #fff7f0;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.4rem;
+}
+
+.cierre-totales {
+  background-color: #ffd6a5;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.cierre-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cierre-btn-cerrar {
+  background-color: #ffb77d;
+  color: #333;
+}
+
+.cierre-btn-cerrar:hover {
+  background-color: #ffa45b;
+}
+
+.cierre-btn-imprimir {
+  background-color: #ffd6a5;
+  color: #333;
+}
+
+.cierre-btn-imprimir:hover {
+  background-color: #ffcc80;
+}

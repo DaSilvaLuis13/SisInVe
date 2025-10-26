@@ -1,0 +1,131 @@
+/* =========================
+   MOVIMIENTO INVENTARIO
+========================= */
+
+/* Contenedor principal */
+.movimiento-inventario-container {
+  background-color: #fef6e4;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+      box-shadow: 8px 8px 10px #ff8c42;
+
+}
+
+/* Botones tipo movimiento */
+.movimiento-inventario-botones .mov-btn,
+.movimiento-inventario-acciones .mov-btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+/* Entradas */
+.movimiento-inventario-botones .mov-btn-entrada {
+  background-color: #a3e4b8;
+}
+
+.movimiento-inventario-botones .mov-btn-entrada.active {
+  background-color: #76d68f;
+}
+
+/* Salidas */
+.movimiento-inventario-botones .mov-btn-salida {
+  background-color: #7fb3f0;
+}
+
+.movimiento-inventario-botones .mov-btn-salida.active {
+  background-color: #5a9ee0;
+}
+
+/* Cancelar */
+.movimiento-inventario-botones .mov-btn-cancel {
+  background-color: #f7d794;
+  color: #3a3a3a;
+}
+
+/* Acciones */
+.movimiento-inventario-acciones .mov-btn-confirm {
+  background-color: #b0e0e6;
+  color: #3a3a3a;
+}
+
+.movimiento-inventario-acciones .mov-btn-search {
+  background-color: #d6d6d6;
+  color: #3a3a3a;
+}
+
+/* Card producto */
+.movimiento-inventario-card-producto {
+  background-color: #ffffff;
+  border-radius: 12px;
+}
+
+.movimiento-inventario-card-producto h5 {
+  color: #5a5a5a;
+}
+
+/* Input cantidad */
+.movimiento-inventario-input-cantidad {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.movimiento-inventario-input-cantidad:focus {
+  border-color: #7fb3f0;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(127, 179, 240, 0.3);
+}
+
+/* Barra de stock */
+.movimiento-inventario-progress-stock {
+  background-color: #e0e0e0;
+  border-radius: 6px;
+  height: 8px;
+  width: 100%;
+}
+
+.movimiento-inventario-progress-stock-inner {
+  background-color: #a3e4b8;
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* Modal de búsqueda */
+.movimiento-inventario-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(245, 247, 250, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.movimiento-inventario-modal-busqueda {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 800px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* Texto */
+.movimiento-inventario-card-body strong {
+  color: #5a5a5a;
+}
+
+.movimiento-inventario-info-producto,
+.movimiento-inventario-stock-producto,
+.movimiento-inventario-cantidad-producto {
+  color: #4a4a4a;
+}

@@ -1,0 +1,59 @@
+
+/* card del movimiento */
+.movimiento-card {
+  background-color: #ffffff; /* card blanco */
+  border-radius: 12px;
+  max-width: 500px;
+  width: 100%;
+      box-shadow: 8px 8px 10px #ff8c42;
+
+}
+
+/* encabezado */
+.movimiento-card h3 {
+  color: #5a5a5a; /* gris oscuro suave */
+}
+
+/* inputs y selects */
+.movimiento-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db; /* gris claro */
+  background-color: #fefefe;
+  font-size: 0.95rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.movimiento-input:focus {
+  border-color: #a3bffa; /* azul pastel al enfocar */
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(163, 191, 250, 0.3);
+}
+
+/* textarea */
+textarea.movimiento-input {
+  resize: none;
+}
+
+/* botón */
+.movimiento-btn {
+  background-color: #a3bffa; /* azul pastel */
+  border: none;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.movimiento-btn:hover {
+  background-color: #7f9fff; /* azul más intenso al hover */
+}
+
+
+/* select y input uniformes */
+select.movimiento-input, input.movimiento-input {
+  font-family: inherit;
+}

@@ -1,0 +1,51 @@
+.notfound-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 80vh;
+    text-align: center;
+    background-color: #f9f5f1; /* fondo pastel suave */
+    color: #555; /* texto neutro */
+    padding: 2rem;
+    box-shadow: 8px 8px 10px #ff8c42;
+}
+
+.notfound-title {
+  font-size: 6rem;
+  font-weight: bold;
+  color: #f28c8c; /* rojo pastel */
+  margin-bottom: 1rem;
+}
+
+.notfound-subtitle {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #f2b88c; /* naranja pastel */
+  margin-bottom: 1rem;
+}
+
+.notfound-text {
+  font-size: 1.1rem;
+  color: #777;
+  margin-bottom: 2rem;
+  max-width: 400px;
+}
+
+.btn-volver {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background-color: #8ccaf2; /* azul pastel */
+  border: none;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-volver:hover {
+  background-color: #6bb2e0;
+  transform: translateY(-2px);
+}

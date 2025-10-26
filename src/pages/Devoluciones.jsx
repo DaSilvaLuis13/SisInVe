@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
 import Busqueda from "../components/Busqueda";
+import "./devoluciones.css";
 
 function Devoluciones() {
   const [productos, setProductos] = useState([]);
@@ -12,7 +13,7 @@ function Devoluciones() {
   const [precioMedida, setPrecioMedida] = useState("");
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [seleccion, setSeleccion] = useState({ cliente: null });
-  const [tipoDevolucion, setTipoDevolucion] = useState("contado"); // contado | credito
+  const [tipoDevolucion, setTipoDevolucion] = useState("contado");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -120,121 +121,107 @@ function Devoluciones() {
   const total = productosSeleccionados.reduce((acc, p) => acc + p.precio_venta * p.cantidad, 0);
 
   const registrarDevolucion = async () => {
-  if (productosSeleccionados.length === 0) {
-    return alert("Agrega al menos un producto.");
-  }
-  if (tipoDevolucion === "credito" && !seleccion.cliente) {
-    return alert("Selecciona un cliente para crédito.");
-  }
+    if (productosSeleccionados.length === 0) return alert("Agrega al menos un producto.");
+    if (tipoDevolucion === "credito" && !seleccion.cliente) return alert("Selecciona un cliente para crédito.");
 
-  setIsSubmitting(true);
-  const fecha = new Date().toISOString().split("T")[0];
-  const hora = new Date().toTimeString().split(" ")[0];
+    setIsSubmitting(true);
+    const fecha = new Date().toISOString().split("T")[0];
+    const hora = new Date().toTimeString().split(" ")[0];
 
-  try {
-    // 🔹 Obtener corte del día
-    const { data: corteData } = await supabase
-      .from("CorteCaja")
-      .select("id,devoluciones_total")
-      .eq("fecha", fecha)
-      .order("id", { ascending: false })
-      .limit(1);
+    try {
+      const { data: corteData } = await supabase
+        .from("CorteCaja")
+        .select("id,devoluciones_total")
+        .eq("fecha", fecha)
+        .order("id", { ascending: false })
+        .limit(1);
 
-    if (!corteData || corteData.length === 0) {
-      alert("No hay un corte de caja abierto para hoy.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const idCorte = corteData[0].id;
-    const devolucionesPrevias = corteData[0].devoluciones_total || 0;
-
-    // 🔹 Insertar devolución
-    const insertData = {
-      fecha,
-      hora,
-      dinero_devolver: total,
-      id_corte: idCorte,
-      tipo_devolucion: tipoDevolucion, 
-    };
-
-    if (tipoDevolucion === "credito" && seleccion.cliente) {
-      insertData.id_cliente = seleccion.cliente.id;
-    }
-
-    const { data: devolucion, error } = await supabase
-      .from("Devolucion")
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // 🔹 Insertar detalle de devolución y actualizar stock
-    for (let p of productosSeleccionados) {
-      await supabase.from("DetalleDevolucion").insert({
-        id_devolucion: devolucion.id,
-        id_producto: p.id,
-        cantidad: p.cantidad,
-        precio_unitario: p.precio_venta,
-        subtotal: p.cantidad * p.precio_venta,
-      });
-
-      // Aumentar stock mediante RPC
-      await supabase.rpc("aumentar_stock", {
-        producto_id: p.id,
-        cantidad: p.cantidad,
-      });
-    }
-
-    // 🔹 Ajuste financiero si es crédito
-    if (tipoDevolucion === "credito" && seleccion.cliente) {
-      const { data: saldoData } = await supabase
-        .from("SaldoCliente")
-        .select("id,monto_que_pagar")
-        .eq("id_cliente", seleccion.cliente.id)
-        .maybeSingle();
-
-      if (saldoData) {
-        await supabase.from("SaldoCliente").update({
-          monto_que_pagar: Number(saldoData.monto_que_pagar || 0) - total,
-          fecha,
-          hora
-        }).eq("id", saldoData.id);
-      } else {
-        await supabase.from("SaldoCliente").insert({
-          id_cliente: seleccion.cliente.id,
-          monto_que_pagar: -total,
-          fecha,
-          hora
-        });
+      if (!corteData || corteData.length === 0) {
+        alert("No hay un corte de caja abierto para hoy.");
+        setIsSubmitting(false);
+        return;
       }
+
+      const idCorte = corteData[0].id;
+      const devolucionesPrevias = corteData[0].devoluciones_total || 0;
+
+      const insertData = {
+        fecha,
+        hora,
+        dinero_devolver: total,
+        id_corte: idCorte,
+        tipo_devolucion: tipoDevolucion
+      };
+
+      if (tipoDevolucion === "credito" && seleccion.cliente) {
+        insertData.id_cliente = seleccion.cliente.id;
+      }
+
+      const { data: devolucion, error } = await supabase
+        .from("Devolucion")
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      for (let p of productosSeleccionados) {
+        await supabase.from("DetalleDevolucion").insert({
+          id_devolucion: devolucion.id,
+          id_producto: p.id,
+          cantidad: p.cantidad,
+          precio_unitario: p.precio_venta,
+          subtotal: p.cantidad * p.precio_venta,
+        });
+
+        await supabase.rpc("aumentar_stock", { producto_id: p.id, cantidad: p.cantidad });
+      }
+
+      if (tipoDevolucion === "credito" && seleccion.cliente) {
+        const { data: saldoData } = await supabase
+          .from("SaldoCliente")
+          .select("id,monto_que_pagar")
+          .eq("id_cliente", seleccion.cliente.id)
+          .maybeSingle();
+
+        if (saldoData) {
+          await supabase.from("SaldoCliente").update({
+            monto_que_pagar: Number(saldoData.monto_que_pagar || 0) - total,
+            fecha,
+            hora
+          }).eq("id", saldoData.id);
+        } else {
+          await supabase.from("SaldoCliente").insert({
+            id_cliente: seleccion.cliente.id,
+            monto_que_pagar: -total,
+            fecha,
+            hora
+          });
+        }
+      }
+
+      const nuevoDevolucionesTotal = devolucionesPrevias + total;
+      await supabase
+        .from("CorteCaja")
+        .update({ devoluciones_total: nuevoDevolucionesTotal })
+        .eq("id", idCorte);
+
+      alert("Devolución registrada correctamente.");
+      cancelarDevolucion();
+    } catch (err) {
+      console.error("Error al registrar devolución:", err);
+      alert("Ocurrió un error al procesar la devolución.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // 🔹 Actualizar corte del día
-    const nuevoDevolucionesTotal = devolucionesPrevias + total;
-    await supabase
-      .from("CorteCaja")
-      .update({ devoluciones_total: nuevoDevolucionesTotal })
-      .eq("id", idCorte);
-
-    alert("Devolución registrada correctamente.");
-    cancelarDevolucion();
-  } catch (err) {
-    console.error("Error al registrar devolución:", err);
-    alert("Ocurrió un error al procesar la devolución.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  };
 
   return (
-    <div className="container my-4">
+    <div className="devoluciones-container container my-4">
       <h2 className="text-center mb-4">Registrar Devolución</h2>
 
       {/* Tabla de productos */}
-      <div className="card shadow-sm mb-4">
+      <div className="card shadow-sm mb-4 devoluciones-table">
         <div className="card-body">
           <h5>Agregar productos</h5>
           <button className="btn btn-outline-primary mb-3" onClick={() => abrirBusqueda("producto")}>
@@ -243,7 +230,7 @@ function Devoluciones() {
 
           <div className="table-responsive">
             <table className="table table-hover align-middle">
-              <thead className="table-light">
+              <thead>
                 <tr>
                   <th>Producto</th>
                   <th>Código</th>
@@ -293,8 +280,8 @@ function Devoluciones() {
 
       {/* Modal kilos/litros */}
       {productoMedida && (
-        <div className="modal-overlay position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
-          <div className="modal-content bg-white p-4 rounded shadow w-50">
+        <div className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center">
+          <div className="modal-content p-4 rounded shadow w-50">
             <h5>Ingrese cantidad o precio para {productoMedida.nombre} ({productoMedida.unidad_medida})</h5>
             <input type="number" className="form-control my-2" placeholder="Cantidad" value={cantidadMedida} onChange={e => {
               setCantidadMedida(e.target.value);
@@ -329,7 +316,9 @@ function Devoluciones() {
           <button className="btn btn-primary" onClick={() => abrirBusqueda("cliente")}>Crédito / Cliente</button>
           <button className="btn btn-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); }}>Quitar cliente</button>
           <button className="btn btn-warning" onClick={cancelarDevolucion}>Cancelar devolución</button>
-          <button className="btn btn-outline-success ms-auto" onClick={registrarDevolucion} disabled={isSubmitting}>{isSubmitting ? "Procesando..." : "Registrar devolución"}</button>
+          <button className="btn btn-outline-success ms-auto" onClick={registrarDevolucion} disabled={isSubmitting}>
+            {isSubmitting ? "Procesando..." : "Registrar devolución"}
+          </button>
         </div>
       </div>
 

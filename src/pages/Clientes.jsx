@@ -1,14 +1,7 @@
-// Aquí van los import que necesites incorporar elementos de la carpeta components
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
-
-/* 
-Formulario de registro/edición de clientes
-Nombres, apellidos
-Domicilio, teléfono
-Límite de crédito (opcional)
-*/
+import "./clientes.css";
 
 function Clientes() {
   const [idCliente, setIdCliente] = useState(null);
@@ -18,16 +11,54 @@ function Clientes() {
   const [domicilioCliente, setDomicilioCliente] = useState("");
   const [telefonoCliente, setTelefonoCliente] = useState("");
   const [limiteCredito, setLimiteCredito] = useState("");
+  const [errorTelefono, setErrorTelefono] = useState("");
 
   const location = useLocation();
 
-  // Validar campos obligatorios
+  // Validaciones
   const validarCampos = () => {
     if (!nombre || !aPaterno || !aMaterno || !domicilioCliente || !telefonoCliente) {
       alert("Por favor llena todos los campos obligatorios");
       return false;
     }
     return true;
+  };
+
+  const validarTelefono = (telefono) => {
+    const regex = /^\d{10}$/;
+    if (!regex.test(telefono)) {
+      setErrorTelefono("El teléfono debe tener 10 dígitos numéricos.");
+      return false;
+    }
+    setErrorTelefono("");
+    return true;
+  };
+
+  const handleTelefonoChange = (e) => {
+    setTelefonoCliente(e.target.value);
+    validarTelefono(e.target.value);
+  };
+
+  const verificarSaldoCero = async (idCliente) => {
+    try {
+      const { data, error } = await supabase
+        .from("SaldoCliente")
+        .select("monto_que_pagar")
+        .eq("id_cliente", idCliente);
+
+      if (error) throw error;
+
+      const tieneDeuda = data.some((item) => parseFloat(item.monto_que_pagar) > 0);
+      if (tieneDeuda) {
+        alert("❌ No se puede editar el cliente mientras tenga deudas pendientes.");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error verificando saldo del cliente:", error);
+      alert("Ocurrió un error al verificar el saldo del cliente.");
+      return false;
+    }
   };
 
   const limpiarFormulario = () => {
@@ -38,11 +69,13 @@ function Clientes() {
     setDomicilioCliente("");
     setTelefonoCliente("");
     setLimiteCredito("");
+    setErrorTelefono("");
   };
 
   const crearCliente = async (e) => {
     e.preventDefault();
     if (!validarCampos()) return;
+    if (!validarTelefono(telefonoCliente)) return;
 
     try {
       const { data, error } = await supabase.from("Clientes").insert({
@@ -57,7 +90,7 @@ function Clientes() {
       if (error) throw error;
 
       limpiarFormulario();
-      console.log("✅ Cliente creado:", data);
+      alert("✅ Cliente registrado correctamente");
     } catch (error) {
       console.error("❌ Error al crear cliente:", error);
     }
@@ -70,6 +103,10 @@ function Clientes() {
       return;
     }
     if (!validarCampos()) return;
+    if (!validarTelefono(telefonoCliente)) return;
+
+    const saldoCero = await verificarSaldoCero(idCliente);
+    if (!saldoCero) return;
 
     try {
       const { data, error } = await supabase
@@ -87,13 +124,13 @@ function Clientes() {
       if (error) throw error;
 
       limpiarFormulario();
-      console.log("✅ Cliente actualizado:", data);
+      alert("✅ Cliente actualizado correctamente");
     } catch (error) {
       console.error("❌ Error al actualizar cliente:", error);
     }
   };
 
-  // Cargar datos si vienen desde otra ruta (modo edición)
+  // Cargar cliente si viene por edición
   useEffect(() => {
     if (location.state?.cliente) {
       const c = location.state.cliente;
@@ -104,117 +141,111 @@ function Clientes() {
       setDomicilioCliente(c.domicilio);
       setTelefonoCliente(c.telefono);
       setLimiteCredito(c.limite_credito || "");
-
-      // Limpiar state para que no persista al recargar
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
   return (
-    <div className="container mt-4">
-      <h2 className="text-center mb-4">
+  <div className="clientes-container d-flex justify-content-center py-5">
+    <div className="card clientes-card p-4">
+      <h2 className="text-center mb-4 fw-bold clientes-titulo">
         {idCliente ? "Editar Cliente" : "Registrar Cliente"}
       </h2>
 
-      <form className="w-50 mx-auto" onSubmit={idCliente ? actualizarCliente : crearCliente}>
-        <div className="mb-3">
-          <label htmlFor="nombres" className="form-label">
-            Nombres:
-          </label>
-          <input
-            type="text"
-            className="form-control text-center"
-            id="nombres"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
+      <form
+        onSubmit={idCliente ? actualizarCliente : crearCliente}
+        className="clientes-form"
+      >
+        <div className="row row-cols-1 row-cols-md-2 g-3">
+          <div className="col">
+            <label className="clientes-label">Nombres:</label>
+            <input
+              type="text"
+              className="form-control clientes-input"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+            />
+          </div>
+          <div className="col">
+            <label className="clientes-label">Apellido Paterno:</label>
+            <input
+              type="text"
+              className="form-control clientes-input"
+              value={aPaterno}
+              onChange={(e) => setAPaterno(e.target.value)}
+            />
+          </div>
+          <div className="col">
+            <label className="clientes-label">Apellido Materno:</label>
+            <input
+              type="text"
+              className="form-control clientes-input"
+              value={aMaterno}
+              onChange={(e) => setAMaterno(e.target.value)}
+            />
+          </div>
+          <div className="col">
+            <label className="clientes-label">Domicilio:</label>
+            <input
+              type="text"
+              className="form-control clientes-input"
+              value={domicilioCliente}
+              onChange={(e) => setDomicilioCliente(e.target.value)}
+            />
+          </div>
+          <div className="col">
+            <label className="clientes-label">Teléfono:</label>
+            <input
+              type="text"
+              className={`form-control clientes-input ${
+                errorTelefono ? "is-invalid" : ""
+              }`}
+              value={telefonoCliente}
+              onChange={handleTelefonoChange}
+            />
+            {errorTelefono && (
+              <div className="invalid-feedback clientes-feedback">{errorTelefono}</div>
+            )}
+          </div>
+          <div className="col">
+            <label className="clientes-label">Límite de crédito (opcional):</label>
+            <input
+              type="number"
+              min={0}
+              max={5000}
+              className="form-control clientes-input"
+              value={limiteCredito}
+              onChange={(e) => setLimiteCredito(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="mb-3">
-          <label htmlFor="apellidoP" className="form-label">
-            Apellido Paterno:
-          </label>
-          <input
-            type="text"
-            className="form-control text-center"
-            id="apellidoP"
-            value={aPaterno}
-            onChange={(e) => setAPaterno(e.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="apellidoM" className="form-label">
-            Apellido Materno:
-          </label>
-          <input
-            type="text"
-            className="form-control text-center"
-            id="apellidoM"
-            value={aMaterno}
-            onChange={(e) => setAMaterno(e.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="domicilio" className="form-label">
-            Domicilio:
-          </label>
-          <input
-            type="text"
-            className="form-control text-center"
-            id="domicilio"
-            value={domicilioCliente}
-            onChange={(e) => setDomicilioCliente(e.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="telefono" className="form-label">
-            Teléfono:
-          </label>
-          <input
-            type="text"
-            className="form-control text-center"
-            id="telefono"
-            value={telefonoCliente}
-            onChange={(e) => setTelefonoCliente(e.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="limite" className="form-label">
-            Límite de crédito (opcional):
-          </label>
-          <input
-            type="number"
-            className="form-control text-center"
-            id="limite"
-            min={0}
-            max={5000}
-            value={limiteCredito}
-            onChange={(e) => setLimiteCredito(e.target.value)}
-          />
-        </div>
-
-        <div className="d-flex justify-content-center gap-2">
+        <div className="clientes-botones mt-4 d-flex gap-2 justify-content-center flex-wrap">
           <button
             type="submit"
-            className={`btn ${idCliente ? "btn-success" : "btn-primary"}`}
+            className={`clientes-btn ${
+              idCliente ? "clientes-btn-actualizar" : "clientes-btn-registrar"
+            }`}
+            disabled={!!errorTelefono}
           >
-            {idCliente ? "Actualizar" : "Crear"}
+            {idCliente ? "Actualizar" : "Registrar"}
           </button>
-
-          <Link to="/consulta-clientes" className="btn btn-secondary">
+          <Link to="/consulta-clientes" className="clientes-btn clientes-btn-consultar">
             Consultar Clientes
           </Link>
-          <Link to="/" className="btn btn-danger">
-            X
-          </Link>
+          <button
+            type="button"
+            className="clientes-btn clientes-btn-cancelar"
+            onClick={limpiarFormulario}
+          >
+            Cancelar
+          </button>
         </div>
       </form>
     </div>
-  );
+  </div>
+);
+
 }
 
 export default Clientes;

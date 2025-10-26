@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "./detalleDevolucion.css"; // 👈 nuevo CSS con tu tema oscuro
 
 function DetalleDevoluciones() {
   const [devoluciones, setDevoluciones] = useState([]);
@@ -51,7 +52,6 @@ function DetalleDevoluciones() {
         .select("id, nombres, apellido_paterno, apellido_materno")
         .in("id", clientesIds);
 
-      // Combinar
       const devolucionesConClientes = devolucionesData.map(d => ({
         ...d,
         cliente: clientesData.find(c => c.id === d.id_cliente) || null
@@ -63,16 +63,14 @@ function DetalleDevoluciones() {
     fetchDevoluciones();
   }, [filtroId, filtroTipoDevolucion, fechaInicio, fechaFin]);
 
-  // Cargar detalle de devolución
+  // Cargar detalle
   useEffect(() => {
     if (!devolucionSeleccionada) return;
-
     const fetchDetalle = async () => {
       const { data: detalleData, error } = await supabase
         .from("DetalleDevolucion")
         .select("id, id_devolucion, id_producto, cantidad, precio_unitario, subtotal")
         .eq("id_devolucion", devolucionSeleccionada.id);
-
       if (error) {
         console.error("Error cargando detalle:", error);
         return;
@@ -88,10 +86,8 @@ function DetalleDevoluciones() {
         ...d,
         producto: productosData.find(p => p.id === d.id_producto) || { nombre: "-" }
       }));
-
       setDetalle(detalleConProductos);
     };
-
     fetchDetalle();
   }, [devolucionSeleccionada]);
 
@@ -105,109 +101,124 @@ function DetalleDevoluciones() {
   });
 
   return (
-    <div className="container mt-4">
-      <h2>Detalle de Devoluciones</h2>
+  <div className="devoluciones-container py-4">
+    <div className="container">
+      <h2 className="devoluciones-title mb-4 text-center fw-bold">📄 Detalle de Devoluciones</h2>
 
       {/* Filtros */}
-      <div className="mb-3">
-        <input
-          type="text"
-          placeholder="ID devolución"
-          value={filtroId}
-          onChange={(e) => setFiltroId(e.target.value)}
-          className="form-control mb-2"
-        />
-        <input
-          type="text"
-          placeholder="Cliente"
-          value={filtroCliente}
-          onChange={(e) => setFiltroCliente(e.target.value)}
-          className="form-control mb-2"
-        />
-        <select
-          value={filtroTipoDevolucion}
-          onChange={(e) => setFiltroTipoDevolucion(e.target.value)}
-          className="form-control mb-2"
-        >
-          <option value="">Tipo de devolución</option>
-          <option value="Contado">Contado</option>
-          <option value="Credito">Crédito</option>
-        </select>
-
-        <div className="d-flex gap-2 mb-2">
-          <DatePicker
-            selected={fechaInicio}
-            onChange={(date) => {
-              setFechaInicio(date);
-              if (fechaFin && date > fechaFin) setFechaFin(date);
-            }}
-            className="form-control"
-            placeholderText="Fecha inicio"
-            dateFormat="yyyy/MM/dd"
-            maxDate={hoy}
-          />
-          <DatePicker
-            selected={fechaFin}
-            onChange={(date) => setFechaFin(date)}
-            className="form-control"
-            placeholderText="Fecha fin"
-            dateFormat="yyyy/MM/dd"
-            minDate={fechaInicio || null}
-            maxDate={hoy}
-          />
+      <div className="card devoluciones-filtros-card shadow-sm mb-4 p-3">
+        <div className="row g-2">
+          <div className="col-md-3">
+            <input
+              type="text"
+              placeholder="ID devolución"
+              value={filtroId}
+              onChange={(e) => setFiltroId(e.target.value)}
+              className="form-control devoluciones-input"
+            />
+          </div>
+          <div className="col-md-3">
+            <input
+              type="text"
+              placeholder="Cliente"
+              value={filtroCliente}
+              onChange={(e) => setFiltroCliente(e.target.value)}
+              className="form-control devoluciones-input"
+            />
+          </div>
+          <div className="col-md-3">
+            <select
+              value={filtroTipoDevolucion}
+              onChange={(e) => setFiltroTipoDevolucion(e.target.value)}
+              className="form-select devoluciones-select"
+            >
+              <option value="">Tipo de devolución</option>
+              <option value="Contado">Contado</option>
+              <option value="Credito">Crédito</option>
+            </select>
+          </div>
+          <div className="col-md-3 d-flex gap-2">
+            <DatePicker
+              selected={fechaInicio}
+              onChange={(date) => {
+                setFechaInicio(date);
+                if (fechaFin && date > fechaFin) setFechaFin(date);
+              }}
+              className="form-control devoluciones-datepicker"
+              placeholderText="Desde"
+              dateFormat="yyyy/MM/dd"
+              maxDate={hoy}
+            />
+            <DatePicker
+              selected={fechaFin}
+              onChange={(date) => setFechaFin(date)}
+              className="form-control devoluciones-datepicker"
+              placeholderText="Hasta"
+              dateFormat="yyyy/MM/dd"
+              minDate={fechaInicio || null}
+              maxDate={hoy}
+            />
+          </div>
         </div>
       </div>
 
       {/* Tabla de devoluciones */}
-      <table className="table table-striped table-hover">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Fecha</th>
-            <th>Tipo de Devolución</th>
-            <th>Total</th>
-            <th>Seleccionar</th>
-          </tr>
-        </thead>
-        <tbody>
-          {devolucionesFiltradas.map((d) => (
-            <tr key={d.id}>
-              <td>{d.id}</td>
-              <td>{d.cliente ? `${d.cliente.nombres} ${d.cliente.apellido_paterno}` : "-"}</td>
-              <td>{d.fecha}</td>
-              <td>{d.tipo_devolucion}</td>
-              <td>{d.dinero_devolver}</td>
-              <td>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setDevolucionSeleccionada(d)}
-                >
-                  Seleccionar
-                </button>
-              </td>
+      <div className="table-responsive shadow-sm rounded devoluciones-table">
+        <table className="table table-hover align-middle mb-0 devoluciones-tbl">
+          <thead className="devoluciones-thead">
+            <tr>
+              <th>ID</th>
+              <th>Cliente</th>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Total</th>
+              <th>Seleccionar</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {devolucionesFiltradas.map((d) => (
+              <tr key={d.id} className="devoluciones-row">
+                <td>{d.id}</td>
+                <td>{d.cliente ? `${d.cliente.nombres} ${d.cliente.apellido_paterno}` : "-"}</td>
+                <td>{d.fecha}</td>
+                <td>{d.tipo_devolucion}</td>
+                <td>{d.dinero_devolver}</td>
+                <td>
+                  <button
+                    className=" btn-sm devoluciones-btn-primary"
+                    onClick={() => setDevolucionSeleccionada(d)}
+                  >
+                    Ver detalle
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Ticket de devolución */}
+      {/* Ticket de la devolución */}
       {devolucionSeleccionada && (
-        <div className="ticket p-3 mt-4 border">
-          <h4>Supermercado X</h4>
+        <div className="devoluciones-ticket-card mt-4 p-3 rounded shadow-sm bg-light">
+          <h5 className="fw-bold">🧾 Supermercado X</h5>
           <p>Devolución #{devolucionSeleccionada.id}</p>
-          <p>Fecha: {devolucionSeleccionada.fecha} Hora: {devolucionSeleccionada.hora}</p>
+          <p>Fecha: {devolucionSeleccionada.fecha} | Hora: {devolucionSeleccionada.hora}</p>
           {devolucionSeleccionada.cliente && (
             <p>Cliente: {`${devolucionSeleccionada.cliente.nombres} ${devolucionSeleccionada.cliente.apellido_paterno}`}</p>
           )}
-          <p>Tipo de Devolución: {devolucionSeleccionada.tipo_devolucion}</p>
-          <hr/>
-          <table className="table table-sm">
+          <p>Tipo: {devolucionSeleccionada.tipo_devolucion}</p>
+          <hr />
+          <table className="table table-sm devoluciones-ticket-table text-dark">
             <thead>
-              <tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th></tr>
+              <tr>
+                <th>Producto</th>
+                <th>Cant</th>
+                <th>P.Unit</th>
+                <th>Subtotal</th>
+              </tr>
             </thead>
             <tbody>
-              {detalle.map((d,i)=>(
+              {detalle.map((d, i) => (
                 <tr key={i}>
                   <td>{d.producto.nombre}</td>
                   <td>{d.cantidad}</td>
@@ -217,12 +228,16 @@ function DetalleDevoluciones() {
               ))}
             </tbody>
           </table>
-          <hr/>
-          <p>Total a devolver: {devolucionSeleccionada.dinero_devolver}</p>
+          <hr />
+          <h6 className="text-end fw-bold">
+            Total a devolver: ${devolucionSeleccionada.dinero_devolver}
+          </h6>
         </div>
       )}
     </div>
-  );
+  </div>
+);
+
 }
 
 export default DetalleDevoluciones;
