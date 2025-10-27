@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import "./detalleDevolucion.css"; // 👈 nuevo CSS con tu tema oscuro
+import "./detalleDevolucion.css";
 
 function DetalleDevoluciones() {
   const [devoluciones, setDevoluciones] = useState([]);
@@ -100,144 +100,188 @@ function DetalleDevoluciones() {
     return true;
   });
 
-  return (
-  <div className="devoluciones-container py-4">
-    <div className="container">
-      <h2 className="devoluciones-title mb-4 text-center fw-bold">📄 Detalle de Devoluciones</h2>
+  // Función para imprimir ticket
+  const imprimirDevolucionSeleccionada = () => {
+    if (!devolucionSeleccionada) return alert("No hay devolución seleccionada");
 
-      {/* Filtros */}
-      <div className="card devoluciones-filtros-card shadow-sm mb-4 p-3">
-        <div className="row g-2">
-          <div className="col-md-3">
-            <input
-              type="text"
-              placeholder="ID devolución"
-              value={filtroId}
-              onChange={(e) => setFiltroId(e.target.value)}
-              className="form-control devoluciones-input"
-            />
-          </div>
-          <div className="col-md-3">
-            <input
-              type="text"
-              placeholder="Cliente"
-              value={filtroCliente}
-              onChange={(e) => setFiltroCliente(e.target.value)}
-              className="form-control devoluciones-input"
-            />
-          </div>
-          <div className="col-md-3">
-            <select
-              value={filtroTipoDevolucion}
-              onChange={(e) => setFiltroTipoDevolucion(e.target.value)}
-              className="form-select devoluciones-select"
-            >
-              <option value="">Tipo de devolución</option>
-              <option value="Contado">Contado</option>
-              <option value="Credito">Crédito</option>
-            </select>
-          </div>
-          <div className="col-md-3 d-flex gap-2">
-            <DatePicker
-              selected={fechaInicio}
-              onChange={(date) => {
-                setFechaInicio(date);
-                if (fechaFin && date > fechaFin) setFechaFin(date);
-              }}
-              className="form-control devoluciones-datepicker"
-              placeholderText="Desde"
-              dateFormat="yyyy/MM/dd"
-              maxDate={hoy}
-            />
-            <DatePicker
-              selected={fechaFin}
-              onChange={(date) => setFechaFin(date)}
-              className="form-control devoluciones-datepicker"
-              placeholderText="Hasta"
-              dateFormat="yyyy/MM/dd"
-              minDate={fechaInicio || null}
-              maxDate={hoy}
-            />
+    let html = `<h3>Supermercado X - Devolución #${devolucionSeleccionada.id}</h3>`;
+    html += `<p>Fecha: ${devolucionSeleccionada.fecha} | Hora: ${devolucionSeleccionada.hora}</p>`;
+    if (devolucionSeleccionada.cliente) {
+      html += `<p>Cliente: ${devolucionSeleccionada.cliente.nombres} ${devolucionSeleccionada.cliente.apellido_paterno}</p>`;
+    }
+    html += `<p>Tipo: ${devolucionSeleccionada.tipo_devolucion}</p>`;
+    html += "<hr/>";
+    html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
+    html += "<tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th></tr>";
+    detalle.forEach(d => {
+      html += `<tr>
+        <td>${d.producto?.nombre || "-"}</td>
+        <td>${d.cantidad}</td>
+        <td>${d.precio_unitario}</td>
+        <td>${d.subtotal}</td>
+      </tr>`;
+    });
+    html += `</table>`;
+    html += `<p>Total a devolver: ${devolucionSeleccionada.dinero_devolver}</p>`;
+    html += `<p>Gracias por su preferencia</p>`;
+
+    const printWindow = window.open("", "PRINT", "height=600,width=400");
+    if (printWindow) {
+      printWindow.document.write("<html><head><title>Ticket Devolución</title></head><body>");
+      printWindow.document.write(html);
+      printWindow.document.write("</body></html>");
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    } else {
+      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+    }
+  };
+
+  return (
+    <div className="devoluciones-container py-4">
+      <div className="container">
+        <h2 className="devoluciones-title mb-4 text-center fw-bold">📄 Detalle de Devoluciones</h2>
+
+        {/* Filtros */}
+        <div className="card devoluciones-filtros-card shadow-sm mb-4 p-3">
+          <div className="row g-2">
+            <div className="col-md-3">
+              <input
+                type="text"
+                placeholder="ID devolución"
+                value={filtroId}
+                onChange={(e) => setFiltroId(e.target.value)}
+                className="form-control devoluciones-input"
+              />
+            </div>
+            <div className="col-md-3">
+              <input
+                type="text"
+                placeholder="Cliente"
+                value={filtroCliente}
+                onChange={(e) => setFiltroCliente(e.target.value)}
+                className="form-control devoluciones-input"
+              />
+            </div>
+            <div className="col-md-3">
+              <select
+                value={filtroTipoDevolucion}
+                onChange={(e) => setFiltroTipoDevolucion(e.target.value)}
+                className="form-select devoluciones-select"
+              >
+                <option value="">Tipo de devolución</option>
+                <option value="Contado">Contado</option>
+                <option value="Credito">Crédito</option>
+              </select>
+            </div>
+            <div className="col-md-3 d-flex gap-2">
+              <DatePicker
+                selected={fechaInicio}
+                onChange={(date) => {
+                  setFechaInicio(date);
+                  if (fechaFin && date > fechaFin) setFechaFin(date);
+                }}
+                className="form-control devoluciones-datepicker"
+                placeholderText="Desde"
+                dateFormat="yyyy/MM/dd"
+                maxDate={hoy}
+              />
+              <DatePicker
+                selected={fechaFin}
+                onChange={(date) => setFechaFin(date)}
+                className="form-control devoluciones-datepicker"
+                placeholderText="Hasta"
+                dateFormat="yyyy/MM/dd"
+                minDate={fechaInicio || null}
+                maxDate={hoy}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tabla de devoluciones */}
-      <div className="table-responsive shadow-sm rounded devoluciones-table">
-        <table className="table table-hover align-middle mb-0 devoluciones-tbl">
-          <thead className="devoluciones-thead">
-            <tr>
-              <th>ID</th>
-              <th>Cliente</th>
-              <th>Fecha</th>
-              <th>Tipo</th>
-              <th>Total</th>
-              <th>Seleccionar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {devolucionesFiltradas.map((d) => (
-              <tr key={d.id} className="devoluciones-row">
-                <td>{d.id}</td>
-                <td>{d.cliente ? `${d.cliente.nombres} ${d.cliente.apellido_paterno}` : "-"}</td>
-                <td>{d.fecha}</td>
-                <td>{d.tipo_devolucion}</td>
-                <td>{d.dinero_devolver}</td>
-                <td>
-                  <button
-                    className=" btn-sm devoluciones-btn-primary"
-                    onClick={() => setDevolucionSeleccionada(d)}
-                  >
-                    Ver detalle
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Ticket de la devolución */}
-      {devolucionSeleccionada && (
-        <div className="devoluciones-ticket-card mt-4 p-3 rounded shadow-sm bg-light">
-          <h5 className="fw-bold">🧾 Supermercado X</h5>
-          <p>Devolución #{devolucionSeleccionada.id}</p>
-          <p>Fecha: {devolucionSeleccionada.fecha} | Hora: {devolucionSeleccionada.hora}</p>
-          {devolucionSeleccionada.cliente && (
-            <p>Cliente: {`${devolucionSeleccionada.cliente.nombres} ${devolucionSeleccionada.cliente.apellido_paterno}`}</p>
-          )}
-          <p>Tipo: {devolucionSeleccionada.tipo_devolucion}</p>
-          <hr />
-          <table className="table table-sm devoluciones-ticket-table text-dark">
-            <thead>
+        {/* Tabla de devoluciones */}
+        <div className="table-responsive shadow-sm rounded devoluciones-table">
+          <table className="table table-hover align-middle mb-0 devoluciones-tbl">
+            <thead className="devoluciones-thead">
               <tr>
-                <th>Producto</th>
-                <th>Cant</th>
-                <th>P.Unit</th>
-                <th>Subtotal</th>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Total</th>
+                <th>Seleccionar</th>
               </tr>
             </thead>
             <tbody>
-              {detalle.map((d, i) => (
-                <tr key={i}>
-                  <td>{d.producto.nombre}</td>
-                  <td>{d.cantidad}</td>
-                  <td>{d.precio_unitario}</td>
-                  <td>{d.subtotal}</td>
+              {devolucionesFiltradas.map((d) => (
+                <tr key={d.id} className="devoluciones-row">
+                  <td>{d.id}</td>
+                  <td>{d.cliente ? `${d.cliente.nombres} ${d.cliente.apellido_paterno}` : "-"}</td>
+                  <td>{d.fecha}</td>
+                  <td>{d.tipo_devolucion}</td>
+                  <td>{d.dinero_devolver}</td>
+                  <td>
+                    <button
+                      className=" btn-sm devoluciones-btn-primary"
+                      onClick={() => setDevolucionSeleccionada(d)}
+                    >
+                      Ver detalle
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <hr />
-          <h6 className="text-end fw-bold">
-            Total a devolver: ${devolucionSeleccionada.dinero_devolver}
-          </h6>
         </div>
-      )}
-    </div>
-  </div>
-);
 
+        {/* Ticket de la devolución */}
+        {devolucionSeleccionada && (
+          <div className="devoluciones-ticket-card mt-4 p-3 rounded shadow-sm bg-light">
+            <h5 className="fw-bold">🧾 Supermercado X</h5>
+            <p>Devolución #{devolucionSeleccionada.id}</p>
+            <p>Fecha: {devolucionSeleccionada.fecha} | Hora: {devolucionSeleccionada.hora}</p>
+            {devolucionSeleccionada.cliente && (
+              <p>Cliente: {`${devolucionSeleccionada.cliente.nombres} ${devolucionSeleccionada.cliente.apellido_paterno}`}</p>
+            )}
+            <p>Tipo: {devolucionSeleccionada.tipo_devolucion}</p>
+            <hr />
+            <table className="table table-sm devoluciones-ticket-table text-dark">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Cant</th>
+                  <th>P.Unit</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detalle.map((d, i) => (
+                  <tr key={i}>
+                    <td>{d.producto.nombre}</td>
+                    <td>{d.cantidad}</td>
+                    <td>{d.precio_unitario}</td>
+                    <td>{d.subtotal}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <hr />
+            <h6 className="text-end fw-bold">
+              Total a devolver: ${devolucionSeleccionada.dinero_devolver}
+            </h6>
+            <button
+              className="btn btn-outline-success mt-3"
+              onClick={imprimirDevolucionSeleccionada}
+            >
+              Imprimir Ticket
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default DetalleDevoluciones;

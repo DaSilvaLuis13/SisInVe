@@ -3,17 +3,18 @@ import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { Button } from '@mui/material';
 import * as XLSX from 'xlsx';
 import { supabase } from '../services/client';
-import { Link } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./reportes.css";
+import jsPDF from "jspdf";
 
 function Reportes() {
   const [tipoReportes, setTipoReportes] = useState('ventas');
   const [data, setData] = useState([]);
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaFin, setFechaFin] = useState(null);
+  const [filasSeleccionadas, setFilasSeleccionadas] = useState([]);
 
   const tablas = {
     ventas: 'Ventas',
@@ -25,7 +26,6 @@ function Reportes() {
     stockMinimo: 'StockMinimo'
   };
 
-  // --- CONSULTA DE DATOS ---
   useEffect(() => {
     const fetchData = async () => {
       const tabla = tablas[tipoReportes];
@@ -56,7 +56,6 @@ function Reportes() {
     fetchData();
   }, [tipoReportes, fechaInicio, fechaFin]);
 
-  // --- FUNCIONES AUXILIARES ---
   const exportarExcel = () => {
     if (data.length === 0) return;
     const ws = XLSX.utils.json_to_sheet(data);
@@ -65,7 +64,44 @@ function Reportes() {
     XLSX.writeFile(wb, `reporte_${tipoReportes}.xlsx`);
   };
 
-  const imprimir = () => window.print();
+  const imprimirGeneral = () => window.print();
+
+  const imprimirFilasSeleccionadas = () => {
+    if (filasSeleccionadas.length === 0) {
+      alert('Selecciona al menos un registro');
+      return;
+    }
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Reporte - ${tipoReportes}`, 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 28);
+
+    let y = 40;
+
+    filasSeleccionadas.forEach((fila, index) => {
+      doc.setFontSize(14);
+      doc.text(`Registro ${index + 1}`, 14, y);
+      y += 6;
+      doc.setFontSize(12);
+
+      Object.entries(fila).forEach(([key, value]) => {
+        if (key === "_gridId") return;
+        const label = columnas[tipoReportes].find(c => c.field === key)?.headerName || key;
+        doc.text(`${label}: ${value}`, 14, y);
+        y += 8;
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      y += 6; // espacio entre registros
+    });
+
+    doc.save(`reporte_${tipoReportes}.pdf`);
+  };
 
   const calcularTotales = (rows) => {
     if (rows.length === 0) return null;
@@ -141,6 +177,25 @@ function Reportes() {
 
   const datosConTotales = tipoReportes === 'corteCaja' ? [...data, calcularTotales(data)] : data;
 
+  const rowsConId = datosConTotales.map((r, i) => ({
+    ...r,
+    _gridId: r.id ?? r.id_producto ?? r.tipo_pago ?? i
+  }));
+
+  // Columnas con checkbox visual al inicio
+  const columnasConCheckboxVisual = [
+    {
+      field: 'checkbox',
+      headerName: '',
+      width: 40,
+      sortable: false,
+      renderCell: (params) => (
+        <input type="checkbox" readOnly checked={filasSeleccionadas.some(r => r._gridId === params.row._gridId)} />
+      )
+    },
+    ...columnas[tipoReportes]
+  ];
+
   return (
     <div className="container reportes-container">
       <h2 className="reportes-titulo text-center mb-4">📊 Reportes del Sistema</h2>
@@ -166,18 +221,36 @@ function Reportes() {
         </div>
       )}
 
-      <div className="d-flex justify-content-center align-items-center exportar-imprimir">
+      <div className="d-flex justify-content-center align-items-center exportar-imprimir mb-3">
         <Button variant="contained" color="success" onClick={exportarExcel} className="me-2">Exportar Excel</Button>
-        <Button variant="contained" color="secondary" onClick={imprimir}>Imprimir</Button>
+        <Button variant="contained" color="secondary" onClick={imprimirGeneral} className="me-2">Imprimir Todo</Button>
+        <Button variant="contained" color="info" onClick={imprimirFilasSeleccionadas}>Imprimir filas seleccionadas</Button>
       </div>
 
       <div style={{ height: 520, width: '100%' }}>
         <DataGrid
-          rows={datosConTotales.map((r, i) => ({ ...r, _gridId: r.id || r.id_producto || r.tipo_pago || i }))}
-          columns={columnas[tipoReportes]}
+          rows={rowsConId}
+          columns={columnasConCheckboxVisual}
           pageSize={10}
           components={{ Toolbar: GridToolbar }}
-          getRowId={(r) => r._gridId}
+          getRowId={(row) => row._gridId}
+          selectionModel={filasSeleccionadas.map(r => r._gridId)}
+          onRowClick={(params) => {
+            const id = params.row._gridId;
+            const yaSeleccionada = filasSeleccionadas.find(r => r._gridId === id);
+            let nuevaSeleccion;
+            if (yaSeleccionada) {
+              nuevaSeleccion = filasSeleccionadas.filter(r => r._gridId !== id);
+            } else {
+              nuevaSeleccion = [params.row]; // solo selecciona una fila a la vez
+            }
+            setFilasSeleccionadas(nuevaSeleccion);
+          }}
+          getRowClassName={(params) =>
+            filasSeleccionadas.find(r => r._gridId === params.row._gridId)
+              ? 'fila-seleccionada'
+              : ''
+          }
         />
       </div>
     </div>

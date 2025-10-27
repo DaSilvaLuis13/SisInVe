@@ -151,21 +151,65 @@ function Venta() {
     0
   );
 
-  const cobrarVenta = async (e) => {
-    e.preventDefault();
+  // Función para generar ticket HTML
+  const generarTicketHTML = () => {
+    let html = `<h3>Ticket de ${tipoPago}</h3>`;
+    if (seleccion.cliente) {
+      html += `<p>Cliente: ${seleccion.cliente.nombres} ${seleccion.cliente.apellido_paterno} ${seleccion.cliente.apellido_materno}</p>`;
+    }
+    html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
+    html += "<tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Subtotal</th></tr>";
+    productosSeleccionados.forEach(p => {
+      html += `<tr>
+        <td>${p.nombre}</td>
+        <td>${p.cantidad}</td>
+        <td>${p.precio_venta.toFixed(2)}</td>
+        <td>${(p.precio_venta * p.cantidad).toFixed(2)}</td>
+      </tr>`;
+    });
+    html += `<tr><th colspan="3">Total</th><th>${total.toFixed(2)}</th></tr>`;
+    html += "</table>";
+    html += `<p>Fecha: ${new Date().toLocaleString()}</p>`;
+    return html;
+  };
+
+  const imprimirTicket = () => {
+    const ticketHTML = generarTicketHTML();
+    const printWindow = window.open("", "PRINT", "height=600,width=400");
+    if (printWindow) {
+      printWindow.document.write("<html><head><title>Ticket</title></head><body>");
+      printWindow.document.write(ticketHTML);
+      printWindow.document.write("</body></html>");
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    } else {
+      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+    }
+  };
+
+  const handleCobrarClick = async () => {
     if (productosSeleccionados.length === 0) {
-      alert("Debes agregar al menos un producto.");
+      alert("Debes agregar productos");
       return;
     }
     if (!tipoPago) {
-      alert("Debes seleccionar un tipo de pago.");
+      alert("Debes seleccionar un tipo de pago");
       return;
     }
     if (tipoPago === "Crédito" && !seleccion.cliente) {
-      alert("Debes seleccionar un cliente para crédito.");
+      alert("Debes seleccionar un cliente para crédito");
       return;
     }
 
+    const deseaTicket = window.confirm("¿Desea imprimir el ticket antes de cobrar?");
+    if (deseaTicket) imprimirTicket();
+
+    await cobrarVenta();
+  };
+
+  const cobrarVenta = async () => {
     try {
       const ahora = new Date();
       const fechaSQL = ahora.toISOString().split("T")[0];
@@ -173,7 +217,7 @@ function Venta() {
 
       const { data: corteData } = await supabase
         .from("CorteCaja")
-        .select("id")
+        .select("id, ventas_total, fiado_total")
         .eq("fecha", fechaSQL)
         .order("id", { ascending: false })
         .limit(1);
@@ -210,6 +254,7 @@ function Venta() {
 
       await supabase.from("DetalleVenta").insert(detalles);
 
+      // Movimientos inventario
       const movimientos = productosSeleccionados.map(p => ({
         id_producto: p.id,
         fecha: fechaSQL,
@@ -217,9 +262,9 @@ function Venta() {
         tipo: "salida",
         cantidad: p.cantidad
       }));
-
       await supabase.from("MovimientosInventario").insert(movimientos);
 
+      // Actualizar stock
       for (let p of productosSeleccionados) {
         const { data: productoActual } = await supabase
           .from("Productos")
@@ -233,6 +278,7 @@ function Venta() {
         }
       }
 
+      // Actualizar saldo cliente
       if (tipoPago === "Crédito" && seleccion.cliente) {
         const { data: saldoData } = await supabase
           .from("SaldoCliente")
@@ -256,15 +302,9 @@ function Venta() {
         }
       }
 
-      const { data: corteActual } = await supabase
-        .from("CorteCaja")
-        .select("ventas_total, fiado_total")
-        .eq("id", idCorte)
-        .single();
-
-      let nuevoVentasTotal = corteActual.ventas_total || 0;
-      let nuevoFiadoTotal = corteActual.fiado_total || 0;
-
+      // Actualizar corte de caja
+      let nuevoVentasTotal = corteData[0].ventas_total || 0;
+      let nuevoFiadoTotal = corteData[0].fiado_total || 0;
       if (tipoPago === "Crédito") nuevoFiadoTotal += total;
       else nuevoVentasTotal += total;
 
@@ -275,9 +315,8 @@ function Venta() {
 
       cancelarVenta();
       alert("Venta registrada correctamente.");
-
     } catch (error) {
-      console.error("Error al cobrar la venta:", error.message);
+      console.error("Error al cobrar la venta:", error);
       alert("Ocurrió un error al procesar la venta.");
     }
   };
@@ -371,7 +410,7 @@ function Venta() {
         <button className="btn-ventas-primary" onClick={() => abrirBusqueda("cliente")}>Crédito</button>
         <button className="btn-ventas-danger" onClick={() => { setSeleccion((prev) => ({ ...prev, cliente: null })); setTipoPago(""); }}>Quitar cliente</button>
         <button className="btn-ventas-warning" onClick={cancelarVenta}>Cancelar venta</button>
-        <button className="btn-ventas-success ms-5" onClick={cobrarVenta}>Cobrar</button>
+        <button className="btn-ventas-success ms-5" onClick={handleCobrarClick}>Cobrar</button>
       </div>
 
       {/* Modal búsqueda */}

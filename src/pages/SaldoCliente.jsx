@@ -216,6 +216,7 @@ function SaldoCliente() {
               placeholder="Monto a abonar"
               className="input-saldo"
               value={montoAbono}
+              min={0}
               onChange={(e) => setMontoAbono(e.target.value)}
               disabled={saldoCliente.monto_que_pagar <= 0}
             />
