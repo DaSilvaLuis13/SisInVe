@@ -262,91 +262,89 @@ function Devoluciones() {
   };
 
   return (
-    <div className="devoluciones-container container my-4">
-      <h2 className="text-center mb-4">Registrar Devolución</h2>
+    <div className="devoluciones-container my-4">
+      <h2 className="devoluciones-card-title text-center mb-4">Registrar Devolución</h2>
 
       {/* Tabla de productos */}
-      <div className="card shadow-sm mb-4 devoluciones-table">
-        <div className="card-body">
-          <h5>Agregar productos</h5>
-          <button className="btn btn-outline-primary mb-3" onClick={() => abrirBusqueda("producto")}>
-            Buscar producto
-          </button>
-          <div className="table-responsive">
-            <table className="table table-hover align-middle">
-              <thead>
+      <div className="devoluciones-card">
+        <h5 className="devoluciones-card-title">Agregar productos</h5>
+        <button className="btn-devoluciones-primary mb-3" onClick={() => abrirBusqueda("producto")}>
+          Buscar producto
+        </button>
+        <div className="table-responsive">
+          <table className="devoluciones-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Código</th>
+                <th>Unidad</th>
+                <th className="text-end">Cantidad</th>
+                <th className="text-end">P. Unitario</th>
+                <th className="text-end">Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {productosSeleccionados.length === 0 ? (
                 <tr>
-                  <th>Producto</th>
-                  <th>Código</th>
-                  <th>Unidad</th>
-                  <th className="text-end">Cantidad</th>
-                  <th className="text-end">P. Unitario</th>
-                  <th className="text-end">Subtotal</th>
-                  <th></th>
+                  <td colSpan={7} className="text-center">No hay productos agregados</td>
                 </tr>
-              </thead>
-              <tbody>
-                {productosSeleccionados.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center">No hay productos agregados</td>
-                  </tr>
-                ) : productosSeleccionados.map(p => (
-                  <tr key={p.id}>
-                    <td>{p.nombre}</td>
-                    <td>{p.codigo_barras}</td>
-                    <td>{p.unidad_medida}</td>
-                    <td className="text-end">
-                      <div className="d-flex justify-content-end gap-1">
-                        <button className="btn btn-sm btn-outline-secondary" onClick={() => actualizarCantidad(p, -1)}>-</button>
-                        <span>{p.cantidad}</span>
-                        <button className="btn btn-sm btn-outline-secondary" onClick={() => actualizarCantidad(p, +1)}>+</button>
-                      </div>
-                    </td>
-                    <td className="text-end">${p.precio_venta.toFixed(2)}</td>
-                    <td className="text-end">${(p.precio_venta * p.cantidad).toFixed(2)}</td>
-                    <td>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => quitarProducto(p.id)}>Quitar</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th colSpan={5} className="text-end">Total</th>
-                  <th className="text-end">${total.toFixed(2)}</th>
-                  <th></th>
+              ) : productosSeleccionados.map(p => (
+                <tr key={p.id}>
+                  <td>{p.nombre}</td>
+                  <td>{p.codigo_barras}</td>
+                  <td>{p.unidad_medida}</td>
+                  <td className="text-end">
+                    <div className="d-flex gap-1">
+                      <button className="btn-devoluciones-danger btn-sm" onClick={() => actualizarCantidad(p, -1)}>-</button>
+                      <span>{p.cantidad}</span>
+                      <button className="btn-devoluciones-success btn-sm" onClick={() => actualizarCantidad(p, +1)}>+</button>
+                    </div>
+                  </td>
+                  <td className="text-end">${p.precio_venta.toFixed(2)}</td>
+                  <td className="text-end">${(p.precio_venta * p.cantidad).toFixed(2)}</td>
+                  <td>
+                    <button className="btn-devoluciones-danger btn-sm" onClick={() => quitarProducto(p.id)}>Quitar</button>
+                  </td>
                 </tr>
-              </tfoot>
-            </table>
-          </div>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colSpan={5} className="text-end">Total</th>
+                <th className="devoluciones-total">${total.toFixed(2)}</th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
       {/* Modal kilos/litros */}
       {productoMedida && (
-        <div className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center">
-          <div className="modal-content p-4 rounded shadow w-50">
+        <div className="devoluciones-modal-overlay position-fixed top-0 start-0 w-100 h-100">
+          <div className="devoluciones-modal-content">
             <h5>Ingrese cantidad o precio para {productoMedida.nombre} ({productoMedida.unidad_medida})</h5>
-            <input type="number" className="form-control my-2" placeholder="Cantidad" value={cantidadMedida} onChange={e => {
+            <input type="number" className="devoluciones-input" placeholder="Cantidad" value={cantidadMedida} onChange={e => {
               setCantidadMedida(e.target.value);
               const val = parseFloat(e.target.value);
               setPrecioMedida(!isNaN(val) ? (val * productoMedida.precio_venta).toFixed(2) : "");
             }} />
-            <input type="number" className="form-control my-2" placeholder="Precio total" value={precioMedida} onChange={e => {
+            <input type="number" className="devoluciones-input" placeholder="Precio total" value={precioMedida} onChange={e => {
               setPrecioMedida(e.target.value);
               const val = parseFloat(e.target.value);
               setCantidadMedida(!isNaN(val) ? (val / productoMedida.precio_venta).toFixed(3) : "");
             }} />
             <div className="text-end mt-3">
-              <button className="btn btn-secondary me-2" onClick={cerrarModalMedida}>Cancelar</button>
-              <button className="btn btn-primary" onClick={confirmarMedida}>Agregar</button>
+              <button className="btn-devoluciones-warning me-2" onClick={cerrarModalMedida}>Cancelar</button>
+              <button className="btn-devoluciones-success" onClick={confirmarMedida}>Agregar</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Campos extra */}
-      <div className="card shadow-sm mb-4 d-flex align-items-center gap-3 p-3">
+      <div className="devoluciones-card d-flex align-items-center gap-3 p-3">
         <p><strong>Tipo de devolución:</strong> {tipoDevolucion || "No seleccionado"}</p>
         {tipoDevolucion === "credito" && seleccion.cliente && (
           <p><strong>Cliente:</strong> {seleccion.cliente.nombres} {seleccion.cliente.apellido_paterno} {seleccion.cliente.apellido_materno}</p>
@@ -354,26 +352,24 @@ function Devoluciones() {
       </div>
 
       {/* Botones */}
-      <div className="card shadow-sm mb-4">
-        <div className="card-body d-flex gap-2 flex-wrap">
-          <button className="btn btn-success" onClick={() => { setTipoDevolucion("contado"); setSeleccion({ cliente: null }); }}>Contado</button>
-          <button className="btn btn-primary" onClick={() => abrirBusqueda("cliente")}>Crédito / Cliente</button>
-          <button className="btn btn-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); }}>Quitar cliente</button>
-          <button className="btn btn-warning" onClick={cancelarDevolucion}>Cancelar devolución</button>
-          <button className="btn btn-outline-success ms-auto" onClick={handleRegistrarClick} disabled={isSubmitting}>
-            {isSubmitting ? "Procesando..." : "Registrar devolución"}
-          </button>
-        </div>
+      <div className="devoluciones-card d-flex gap-2 flex-wrap">
+        <button className="btn-devoluciones-success" onClick={() => { setTipoDevolucion("contado"); setSeleccion({ cliente: null }); }}>Contado</button>
+        <button className="btn-devoluciones-primary" onClick={() => abrirBusqueda("cliente")}>Crédito / Cliente</button>
+        <button className="btn-devoluciones-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); }}>Quitar cliente</button>
+        <button className="btn-devoluciones-warning" onClick={cancelarDevolucion}>Cancelar devolución</button>
+        <button className="btn-devoluciones-success ms-auto" onClick={handleRegistrarClick} disabled={isSubmitting}>
+          {isSubmitting ? "Procesando..." : "Registrar devolución"}
+        </button>
       </div>
 
       {/* Modal búsqueda */}
       {mostrarBusqueda && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
-          <div className="bg-white p-4 rounded shadow w-75">
+        <div className="devoluciones-modal-overlay position-fixed top-0 start-0 w-100 h-100">
+          <div className="devoluciones-modal-content">
             <h5>Buscar {tipoBusqueda === "producto" ? "Producto" : "Cliente"}</h5>
             <Busqueda datos={tipoBusqueda === "producto" ? productos : clientes} onSeleccionar={manejarSeleccion} />
             <div className="text-end mt-3">
-              <button className="btn btn-secondary" onClick={() => setMostrarBusqueda(false)}>Cerrar</button>
+              <button className="btn-devoluciones-warning" onClick={() => setMostrarBusqueda(false)}>Cerrar</button>
             </div>
           </div>
         </div>
