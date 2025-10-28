@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
+import { useCaja } from "../context/CajaContext"; // nuestro contexto
 import "./cierreCaja.css";
 
 function CierreDeCaja() {
@@ -8,6 +9,8 @@ function CierreDeCaja() {
   const [dineroActualEnCaja, setDineroActualEnCaja] = useState(0);
   const [diferencia, setDiferencia] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const { setCajaAbierta } = useCaja();
 
   useEffect(() => {
     const fetchUltimoCorte = async () => {
@@ -22,6 +25,7 @@ function CierreDeCaja() {
       } else if (data.length > 0) {
         const ultimoCorte = data[0];
         setCorte(ultimoCorte);
+
         const hora = new Date().toTimeString().split(" ")[0];
         setHoraFinal(hora);
 
@@ -50,13 +54,20 @@ function CierreDeCaja() {
         .update({
           hora_fin: horaFinal,
           fondo_actual: dineroActualEnCaja,
-          diferencia: diferencia,
+          diferencia,
           estado: "cerrada",
         })
         .eq("id", corte.id);
 
       if (error) throw error;
+
+      // Bloquea todo el sistema
+      setCajaAbierta(false);
+
       alert("✅ Caja cerrada correctamente");
+
+      // Redirige automáticamente a apertura de caja
+      window.location.href = "/apertura-caja";
     } catch (error) {
       console.error("Error al cerrar caja:", error.message);
       alert("❌ Error al cerrar caja");
@@ -64,6 +75,7 @@ function CierreDeCaja() {
   };
 
   const imprimirTicket = () => {
+    if (!corte) return;
     const ticketContent = `
       <div style="font-family: monospace; width: 280px; padding: 10px;">
         <div style="text-align:center;">

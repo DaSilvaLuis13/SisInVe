@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
+import { useNavigate } from "react-router-dom";
 import "./aperturaCaja.css";
 
-function AperturaDeCaja() {
+function AperturaDeCaja({ onCajaAbierta }) {
   const [fondoInicial, setFondoInicial] = useState("");
   const [fechaActual, setFechaActual] = useState("");
   const [horaActual, setHoraActual] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const navigate = useNavigate(); // <-- para redirigir
 
   useEffect(() => {
     const ahora = new Date();
@@ -50,6 +53,12 @@ function AperturaDeCaja() {
 
       setFondoInicial("");
       alert("✅ Caja abierta correctamente");
+
+      // Avisamos al Layout que la caja ya está abierta
+      onCajaAbierta();
+
+      // 🔹 Redirigimos al Home
+      navigate("/", { replace: true });
 
     } catch (error) {
       console.error("Error al abrir caja:", error.message);
