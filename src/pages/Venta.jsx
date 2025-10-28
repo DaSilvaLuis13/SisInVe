@@ -20,7 +20,7 @@ function Venta() {
     const fetchProductos = async () => {
       const { data, error } = await supabase
         .from("Productos")
-        .select("id, codigo_barras, nombre, unidad_medida, precio_venta, stock_actual")
+        .select("id, codigo_barras, nombre, unidad_medida, precio_venta, stock_actual, stock_minimo")
         .order("id", { ascending: true });
       if (!error) setProductos(data);
     };
@@ -43,29 +43,55 @@ function Venta() {
     setMostrarBusqueda(true);
   };
 
-  const manejarSeleccion = (item) => {
+  const manejarSeleccion = async (item) => {
     if (tipoBusqueda === "producto") {
-      if (item.unidad_medida === "kilos" || item.unidad_medida === "litros") {
-        setProductoMedida(item);
+      // Traer stock_actual y stock_minimo
+      const { data: productoData, error } = await supabase
+        .from("Productos")
+        .select("id, nombre, unidad_medida, precio_venta, stock_actual, stock_minimo")
+        .eq("id", item.id)
+        .single();
+
+      if (error || !productoData) {
+        alert("Error al obtener información del producto.");
+        return;
+      }
+
+      if (productoData.stock_actual <= 0) {
+        alert(
+          `⚠️ El producto "${productoData.nombre}" no tiene stock disponible.\nRedirigiendo a Movimientos de Inventario.`
+        );
+        window.location.href = "/movimiento-inventario";
+        return;
+      }
+
+      if (productoData.stock_actual <= productoData.stock_minimo) {
+        alert(
+          `⚠️ El producto "${productoData.nombre}" tiene un stock bajo (${productoData.stock_actual}).\nRecomendación: reponer pronto.`
+        );
+      }
+
+      if (productoData.unidad_medida === "kilos" || productoData.unidad_medida === "litros") {
+        setProductoMedida(productoData);
         setCantidadMedida("");
         setPrecioMedida("");
       } else {
-        const existenteIndex = productosSeleccionados.findIndex(p => p.id === item.id);
+        const existenteIndex = productosSeleccionados.findIndex((p) => p.id === productoData.id);
         if (existenteIndex >= 0) {
-          setProductosSeleccionados(prev => {
+          setProductosSeleccionados((prev) => {
             const actualizado = [...prev];
             actualizado[existenteIndex] = {
               ...actualizado[existenteIndex],
-              cantidad: (actualizado[existenteIndex].cantidad || 1) + 1
+              cantidad: (actualizado[existenteIndex].cantidad || 1) + 1,
             };
             return actualizado;
           });
         } else {
-          setProductosSeleccionados(prev => [...prev, { ...item, cantidad: 1 }]);
+          setProductosSeleccionados((prev) => [...prev, { ...productoData, cantidad: 1 }]);
         }
       }
     } else if (tipoBusqueda === "cliente") {
-      setSeleccion(prev => ({ ...prev, cliente: item }));
+      setSeleccion((prev) => ({ ...prev, cliente: item }));
       setTipoPago("Crédito");
     }
     setMostrarBusqueda(false);
@@ -75,16 +101,16 @@ function Venta() {
     const cantidad = parseFloat(cantidadMedida);
     const precio = parseFloat(precioMedida);
     if ((!isNaN(cantidad) && cantidad > 0) || (!isNaN(precio) && precio > 0)) {
-      setProductosSeleccionados(prev => {
+      setProductosSeleccionados((prev) => {
         const cantidadFinal = !isNaN(cantidad) && cantidad > 0 ? cantidad : precio / productoMedida.precio_venta;
-        const existenteIndex = prev.findIndex(p => p.id === productoMedida.id);
+        const existenteIndex = prev.findIndex((p) => p.id === productoMedida.id);
 
         if (existenteIndex >= 0) {
           const actualizado = [...prev];
           actualizado[existenteIndex] = {
             ...productoMedida,
             cantidad: cantidadFinal,
-            precio_venta: productoMedida.precio_venta
+            precio_venta: productoMedida.precio_venta,
           };
           return actualizado;
         } else {
@@ -113,16 +139,14 @@ function Venta() {
   const onChangeCantidad = (val) => {
     setCantidadMedida(val);
     const cantidad = parseFloat(val);
-    if (!isNaN(cantidad))
-      setPrecioMedida((cantidad * productoMedida.precio_venta).toFixed(2));
+    if (!isNaN(cantidad)) setPrecioMedida((cantidad * productoMedida.precio_venta).toFixed(2));
     else setPrecioMedida("");
   };
 
   const onChangePrecio = (val) => {
     setPrecioMedida(val);
     const precio = parseFloat(val);
-    if (!isNaN(precio))
-      setCantidadMedida((precio / productoMedida.precio_venta).toFixed(3));
+    if (!isNaN(precio)) setCantidadMedida((precio / productoMedida.precio_venta).toFixed(3));
     else setCantidadMedida("");
   };
 
@@ -132,26 +156,20 @@ function Venta() {
       setCantidadMedida("");
       setPrecioMedida("");
     } else {
-      setProductosSeleccionados(prev =>
-        prev.map(p =>
-          p.id === producto.id
-            ? { ...p, cantidad: Math.max(1, (p.cantidad || 1) + delta) }
-            : p
+      setProductosSeleccionados((prev) =>
+        prev.map((p) =>
+          p.id === producto.id ? { ...p, cantidad: Math.max(1, (p.cantidad || 1) + delta) } : p
         )
       );
     }
   };
 
   const quitarProducto = (id) => {
-    setProductosSeleccionados(prev => prev.filter(p => p.id !== id));
+    setProductosSeleccionados((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const total = productosSeleccionados.reduce(
-    (acc, p) => acc + p.precio_venta * p.cantidad,
-    0
-  );
+  const total = productosSeleccionados.reduce((acc, p) => acc + p.precio_venta * p.cantidad, 0);
 
-  // Función para generar ticket HTML
   const generarTicketHTML = () => {
     let html = `<h3>Ticket de ${tipoPago}</h3>`;
     if (seleccion.cliente) {
@@ -159,7 +177,7 @@ function Venta() {
     }
     html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
     html += "<tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Subtotal</th></tr>";
-    productosSeleccionados.forEach(p => {
+    productosSeleccionados.forEach((p) => {
       html += `<tr>
         <td>${p.nombre}</td>
         <td>${p.cantidad}</td>
@@ -211,6 +229,34 @@ function Venta() {
 
   const cobrarVenta = async () => {
     try {
+      // Validación de stock antes de cobrar
+      for (let p of productosSeleccionados) {
+        const { data: prod } = await supabase
+          .from("Productos")
+          .select("nombre, stock_actual, stock_minimo")
+          .eq("id", p.id)
+          .single();
+
+        if (prod) {
+          if (prod.stock_actual <= 0) {
+            alert(`🚫 El producto "${prod.nombre}" no tiene stock disponible. No se puede procesar la venta.`);
+            window.location.href = "/movimiento-inventario";
+            return;
+          }
+
+          if (prod.stock_actual <= prod.stock_minimo) {
+            alert(`⚠️ El producto "${prod.nombre}" está por debajo del stock mínimo (${prod.stock_actual}).`);
+          }
+
+          if (prod.stock_actual < p.cantidad) {
+            alert(
+              `🚫 No hay suficiente stock de "${prod.nombre}". Disponible: ${prod.stock_actual}, solicitado: ${p.cantidad}.`
+            );
+            return;
+          }
+        }
+      }
+
       const ahora = new Date();
       const fechaSQL = ahora.toISOString().split("T")[0];
       const horaSQL = ahora.toTimeString().split(" ")[0];
@@ -237,30 +283,30 @@ function Venta() {
           tipo_pago: tipoPago,
           total: total,
           fecha: fechaSQL,
-          hora: horaSQL
+          hora: horaSQL,
         })
         .select("id")
         .single();
 
       const idVenta = ventaData.id;
 
-      const detalles = productosSeleccionados.map(p => ({
+      const detalles = productosSeleccionados.map((p) => ({
         id_venta: idVenta,
         id_producto: p.id,
         cantidad: p.cantidad,
         precio_unitario: p.precio_venta,
-        subtotal: p.cantidad * p.precio_venta
+        subtotal: p.cantidad * p.precio_venta,
       }));
 
       await supabase.from("DetalleVenta").insert(detalles);
 
       // Movimientos inventario
-      const movimientos = productosSeleccionados.map(p => ({
+      const movimientos = productosSeleccionados.map((p) => ({
         id_producto: p.id,
         fecha: fechaSQL,
         hora: horaSQL,
         tipo: "salida",
-        cantidad: p.cantidad
+        cantidad: p.cantidad,
       }));
       await supabase.from("MovimientosInventario").insert(movimientos);
 
@@ -290,14 +336,14 @@ function Venta() {
           await supabase.from("SaldoCliente").update({
             monto_que_pagar: Number(saldoData.monto_que_pagar || 0) + total,
             fecha: fechaSQL,
-            hora: horaSQL
+            hora: horaSQL,
           }).eq("id", saldoData.id);
         } else {
           await supabase.from("SaldoCliente").insert({
             id_cliente: seleccion.cliente.id,
             monto_que_pagar: total,
             fecha: fechaSQL,
-            hora: horaSQL
+            hora: horaSQL,
           });
         }
       }
@@ -310,7 +356,7 @@ function Venta() {
 
       await supabase.from("CorteCaja").update({
         ventas_total: nuevoVentasTotal,
-        fiado_total: nuevoFiadoTotal
+        fiado_total: nuevoFiadoTotal,
       }).eq("id", idCorte);
 
       cancelarVenta();
@@ -324,7 +370,6 @@ function Venta() {
   return (
     <div className="ventas-container my-4">
       <h2 className="text-center mb-4">Registrar Venta</h2>
-      {/* Tabla de productos */}
       <div className="ventas-card">
         <h5 className="ventas-card-title">Agregar productos</h5>
         <button className="btn-ventas-primary mb-3" onClick={() => abrirBusqueda("producto")}>
@@ -346,25 +391,33 @@ function Venta() {
             <tbody>
               {productosSeleccionados.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center">No hay productos agregados</td>
+                  <td colSpan={7} className="text-center">
+                    No hay productos agregados
+                  </td>
                 </tr>
               ) : (
-                productosSeleccionados.map(p => (
+                productosSeleccionados.map((p) => (
                   <tr key={p.id}>
                     <td>{p.nombre}</td>
                     <td>{p.codigo_barras}</td>
                     <td>{p.unidad_medida}</td>
                     <td className="text-end">
                       <div className="d-flex justify-content-end gap-1">
-                        <button className="btn-ventas-danger btn-sm" onClick={() => actualizarCantidad(p, -1)}>-</button>
+                        <button className="btn-ventas-danger btn-sm" onClick={() => actualizarCantidad(p, -1)}>
+                          -
+                        </button>
                         <span>{p.cantidad}</span>
-                        <button className="btn-ventas-success btn-sm" onClick={() => actualizarCantidad(p, +1)}>+</button>
+                        <button className="btn-ventas-success btn-sm" onClick={() => actualizarCantidad(p, +1)}>
+                          +
+                        </button>
                       </div>
                     </td>
                     <td className="text-end">${p.precio_venta.toFixed(2)}</td>
                     <td className="text-end">${(p.precio_venta * p.cantidad).toFixed(2)}</td>
                     <td>
-                      <button className="btn-ventas-danger btn-sm" onClick={() => quitarProducto(p.id)}>Quitar</button>
+                      <button className="btn-ventas-danger btn-sm" onClick={() => quitarProducto(p.id)}>
+                        Quitar
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -372,7 +425,9 @@ function Venta() {
             </tbody>
             <tfoot>
               <tr>
-                <th colSpan={5} className="text-end">Total</th>
+                <th colSpan={5} className="text-end">
+                  Total
+                </th>
                 <th className="ventas-total">${total.toFixed(2)}</th>
                 <th></th>
               </tr>
@@ -385,42 +440,86 @@ function Venta() {
       {productoMedida && (
         <div className="ventas-modal-overlay position-fixed top-0 start-0 w-100 h-100">
           <div className="ventas-modal-content">
-            <h5>Ingrese cantidad o precio para {productoMedida.nombre} ({productoMedida.unidad_medida})</h5>
-            <input type="number" className="ventas-input" value={cantidadMedida} onChange={(e) => onChangeCantidad(e.target.value)} placeholder="Cantidad (kg/litro)" />
-            <input type="number" className="ventas-input" value={precioMedida} onChange={(e) => onChangePrecio(e.target.value)} placeholder="Precio total" />
+            <h5>
+              Ingrese cantidad o precio para {productoMedida.nombre} ({productoMedida.unidad_medida})
+            </h5>
+            <input
+              type="number"
+              className="ventas-input"
+              value={cantidadMedida}
+              onChange={(e) => onChangeCantidad(e.target.value)}
+              placeholder="Cantidad (kg/litro)"
+            />
+            <input
+              type="number"
+              className="ventas-input"
+              value={precioMedida}
+              onChange={(e) => onChangePrecio(e.target.value)}
+              placeholder="Precio total"
+            />
             <div className="text-end mt-3">
-              <button className="btn-ventas-danger me-2" onClick={cerrarModalMedida}>Cancelar</button>
-              <button className="btn-ventas-success" onClick={confirmarMedida}>Agregar</button>
+              <button className="btn-ventas-danger me-2" onClick={cerrarModalMedida}>
+                Cancelar
+              </button>
+              <button className="btn-ventas-success" onClick={confirmarMedida}>
+                Agregar
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Campos extra */}
       <div className="ventas-card d-flex gap-3">
-        <p><strong>Tipo de pago:</strong> <span>{tipoPago || "No seleccionado"}</span></p>
+        <p>
+          <strong>Tipo de pago:</strong> <span>{tipoPago || "No seleccionado"}</span>
+        </p>
         {tipoPago === "Crédito" && seleccion.cliente && (
-          <p className="ms-3"><strong>Cliente:</strong> {seleccion.cliente.nombres} {seleccion.cliente.apellido_paterno} {seleccion.cliente.apellido_materno}</p>
+          <p className="ms-3">
+            <strong>Cliente:</strong> {seleccion.cliente.nombres} {seleccion.cliente.apellido_paterno}{" "}
+            {seleccion.cliente.apellido_materno}
+          </p>
         )}
       </div>
 
-      {/* Botones */}
       <div className="ventas-card d-flex gap-3">
-        <button className="btn-ventas-success" onClick={() => { setTipoPago("Contado"); setSeleccion({ ...seleccion, cliente: null }); }}>Contado</button>
-        <button className="btn-ventas-primary" onClick={() => abrirBusqueda("cliente")}>Crédito</button>
-        <button className="btn-ventas-danger" onClick={() => { setSeleccion((prev) => ({ ...prev, cliente: null })); setTipoPago(""); }}>Quitar cliente</button>
-        <button className="btn-ventas-warning" onClick={cancelarVenta}>Cancelar venta</button>
-        <button className="btn-ventas-success ms-5" onClick={handleCobrarClick}>Cobrar</button>
+        <button
+          className="btn-ventas-success"
+          onClick={() => {
+            setTipoPago("Contado");
+            setSeleccion({ ...seleccion, cliente: null });
+          }}
+        >
+          Contado
+        </button>
+        <button className="btn-ventas-primary" onClick={() => abrirBusqueda("cliente")}>
+          Crédito
+        </button>
+        <button
+          className="btn-ventas-danger"
+          onClick={() => {
+            setSeleccion((prev) => ({ ...prev, cliente: null }));
+            setTipoPago("");
+          }}
+        >
+          Quitar cliente
+        </button>
+        <button className="btn-ventas-warning" onClick={cancelarVenta}>
+          Cancelar venta
+        </button>
+        <button className="btn-ventas-success ms-5" onClick={handleCobrarClick}>
+          Cobrar
+        </button>
       </div>
 
-      {/* Modal búsqueda */}
       {mostrarBusqueda && (
         <div className="ventas-modal-overlay position-fixed top-0 start-0 w-100 h-100">
           <div className="ventas-modal-content w-75">
             <h5>Buscar {tipoBusqueda === "producto" ? "Producto" : "Cliente"}</h5>
             <Busqueda datos={tipoBusqueda === "producto" ? productos : clientes} onSeleccionar={manejarSeleccion} />
             <div className="text-end mt-3">
-              <button className="btn-ventas-danger" onClick={() => setMostrarBusqueda(false)}>Cerrar</button>
+              <button className="btn-ventas-danger" onClick={() => setMostrarBusqueda(false)}>
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

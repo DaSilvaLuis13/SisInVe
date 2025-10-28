@@ -15,6 +15,7 @@ function Devoluciones() {
   const [seleccion, setSeleccion] = useState({ cliente: null });
   const [tipoDevolucion, setTipoDevolucion] = useState("contado");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saldoCliente, setSaldoCliente] = useState(0);
 
   // Fetch productos y clientes
   useEffect(() => {
@@ -39,7 +40,7 @@ function Devoluciones() {
     setMostrarBusqueda(true);
   };
 
-  const manejarSeleccion = (item) => {
+  const manejarSeleccion = async (item) => {
     if (tipoBusqueda === "producto") {
       if (item.unidad_medida === "kilos" || item.unidad_medida === "litros") {
         setProductoMedida(item);
@@ -58,6 +59,15 @@ function Devoluciones() {
     } else if (tipoBusqueda === "cliente") {
       setSeleccion({ cliente: item });
       setTipoDevolucion("credito");
+
+      // Obtener saldo del cliente
+      const { data: saldoData } = await supabase
+        .from("SaldoCliente")
+        .select("monto_que_pagar")
+        .eq("id_cliente", item.id)
+        .maybeSingle();
+
+      setSaldoCliente(saldoData?.monto_que_pagar || 0);
     }
     setMostrarBusqueda(false);
   };
@@ -117,11 +127,11 @@ function Devoluciones() {
     setProductoMedida(null);
     setCantidadMedida("");
     setPrecioMedida("");
+    setSaldoCliente(0);
   };
 
   const total = productosSeleccionados.reduce((acc, p) => acc + p.precio_venta * p.cantidad, 0);
 
-  // Generar HTML del ticket
   const generarTicketHTML = () => {
     let html = `<h3>Ticket de Devolución (${tipoDevolucion})</h3>`;
     if (seleccion.cliente) {
@@ -168,6 +178,21 @@ function Devoluciones() {
     const hora = new Date().toTimeString().split(" ")[0];
 
     try {
+      // Validación de saldo del cliente
+      if (tipoDevolucion === "credito" && seleccion.cliente) {
+        if (saldoCliente <= 0) {
+          alert("El cliente no tiene saldo pendiente. No se puede realizar la devolución.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (total > saldoCliente) {
+          alert(`El monto a devolver (${total.toFixed(2)}) supera el saldo pendiente del cliente (${saldoCliente.toFixed(2)}).`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const { data: corteData } = await supabase
         .from("CorteCaja")
         .select("id,devoluciones_total")
@@ -229,13 +254,6 @@ function Devoluciones() {
             fecha,
             hora
           }).eq("id", saldoData.id);
-        } else {
-          await supabase.from("SaldoCliente").insert({
-            id_cliente: seleccion.cliente.id,
-            monto_que_pagar: -total,
-            fecha,
-            hora
-          });
         }
       }
 
@@ -261,11 +279,13 @@ function Devoluciones() {
     await registrarDevolucion();
   };
 
+  const botonDisabled = isSubmitting ||
+    (tipoDevolucion === "credito" && seleccion.cliente && (saldoCliente <= 0 || total > saldoCliente));
+
   return (
     <div className="devoluciones-container my-4">
       <h2 className="devoluciones-card-title text-center mb-4">Registrar Devolución</h2>
 
-      {/* Tabla de productos */}
       <div className="devoluciones-card">
         <h5 className="devoluciones-card-title">Agregar productos</h5>
         <button className="btn-devoluciones-primary mb-3" onClick={() => abrirBusqueda("producto")}>
@@ -320,7 +340,6 @@ function Devoluciones() {
         </div>
       </div>
 
-      {/* Modal kilos/litros */}
       {productoMedida && (
         <div className="devoluciones-modal-overlay position-fixed top-0 start-0 w-100 h-100">
           <div className="devoluciones-modal-content">
@@ -343,26 +362,26 @@ function Devoluciones() {
         </div>
       )}
 
-      {/* Campos extra */}
       <div className="devoluciones-card d-flex align-items-center gap-3 p-3">
         <p><strong>Tipo de devolución:</strong> {tipoDevolucion || "No seleccionado"}</p>
         {tipoDevolucion === "credito" && seleccion.cliente && (
           <p><strong>Cliente:</strong> {seleccion.cliente.nombres} {seleccion.cliente.apellido_paterno} {seleccion.cliente.apellido_materno}</p>
         )}
+        {tipoDevolucion === "credito" && seleccion.cliente && (
+          <p><strong>Saldo pendiente:</strong> ${saldoCliente.toFixed(2)}</p>
+        )}
       </div>
 
-      {/* Botones */}
       <div className="devoluciones-card d-flex gap-2 flex-wrap">
-        <button className="btn-devoluciones-success" onClick={() => { setTipoDevolucion("contado"); setSeleccion({ cliente: null }); }}>Contado</button>
+        <button className="btn-devoluciones-success" onClick={() => { setTipoDevolucion("contado"); setSeleccion({ cliente: null }); setSaldoCliente(0); }}>Contado</button>
         <button className="btn-devoluciones-primary" onClick={() => abrirBusqueda("cliente")}>Crédito / Cliente</button>
-        <button className="btn-devoluciones-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); }}>Quitar cliente</button>
+        <button className="btn-devoluciones-danger" onClick={() => { setSeleccion({ cliente: null }); setTipoDevolucion(""); setSaldoCliente(0); }}>Quitar cliente</button>
         <button className="btn-devoluciones-warning" onClick={cancelarDevolucion}>Cancelar devolución</button>
-        <button className="btn-devoluciones-success ms-auto" onClick={handleRegistrarClick} disabled={isSubmitting}>
+        <button className="btn-devoluciones-success ms-auto" onClick={handleRegistrarClick} disabled={botonDisabled}>
           {isSubmitting ? "Procesando..." : "Registrar devolución"}
         </button>
       </div>
 
-      {/* Modal búsqueda */}
       {mostrarBusqueda && (
         <div className="devoluciones-modal-overlay position-fixed top-0 start-0 w-100 h-100">
           <div className="devoluciones-modal-content">
