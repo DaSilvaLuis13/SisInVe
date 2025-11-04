@@ -21,7 +21,7 @@ import Productos from './pages/Productos'
 import Clientes from './pages/Clientes'
 import Consultas from './pages/Consultas'
 import Reportes from './pages/Reportes'
-
+import Ayuda from './pages/ayuda'
 function App() {
   return (
     <Routes>
@@ -60,6 +60,8 @@ function App() {
         <Route path='consultas' element={<Consultas />} />
         <Route path='reportes' element={<Reportes />} />
 
+        <Route path='ayuda' element={<Ayuda />} />
+        
         {/* Página no encontrada */}
         <Route path='*' element={<NotFound />} />
       </Route>
