@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../services/client";
 import "./productos.css";
 
@@ -29,6 +29,12 @@ function Productos() {
     setStockMaximo("");
     setStockInicial("");
   };
+
+const navigate = useNavigate();
+
+const ayuda = () => {
+  navigate('/ayuda#registrar');
+};
 
   useEffect(() => {
     const c = Number(costo) || 0;
@@ -210,12 +216,15 @@ function Productos() {
 
       </div>
 
-      <div className="d-flex justify-content-center gap-3 mt-4"> {/* Bootstrap */}
-        <button type="submit" className={`btn-ac ${idProducto ? "btn-success-actualizar" : "btn-primary"}`}>
-          {idProducto ? "Actualizar" : "Crear"}
-        </button>
-        <Link to="/consulta-productos" className=" btn-secondary btn-c">Consultar</Link>
-        <button type="button" className=" btn-danger btn-cancelar" onClick={limpiarFormulario}>Cancelar</button>
+      <div className="d-flex justify-content-between align-items-center mt-4">
+        <div className="d-flex justify-content-center gap-3 flex-grow-1">
+          <button type="submit" className={`btn-ac ${idProducto ? "btn-success-actualizar" : "btn-primary"}`}>
+            {idProducto ? "Actualizar" : "Crear"}
+          </button>
+          <Link to="/consulta-productos" className="btn-secondary btn-c">Consultar</Link>
+          <button type="button" className="btn-danger btn-cancelar" onClick={limpiarFormulario}>Cancelar</button>
+        </div>
+        <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
       </div>
     </form>
   </div>
