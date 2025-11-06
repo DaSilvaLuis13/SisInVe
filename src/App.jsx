@@ -23,7 +23,7 @@ import Productos from './pages/Productos'
 import Clientes from './pages/Clientes'
 import Consultas from './pages/Consultas'
 import Reportes from './pages/Reportes'
-
+import Ayuda from './pages/ayuda'
 function App() {
   return (
     <Routes>

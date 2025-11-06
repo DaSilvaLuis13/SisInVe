@@ -1,0 +1,107 @@
+.formulario-ayuda {
+  background-color: #fff7f2;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+.imagen {
+  display: block;
+  margin: 20px auto;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.tabla-container {
+  background-color: #fff8f3;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: "Segoe UI", sans-serif;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fffdfb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Encabezado */
+thead {
+  background-color: #f9ece2;
+  color: #5e5166;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+th,
+td {
+  padding: 12px 15px;
+  text-align: center;
+  border-bottom: 1px solid #e7d9cf;
+}
+
+/* Negritas para primera y segunda columna */
+td:first-child,
+td:nth-child(2),
+th:first-child,
+th:nth-child(2),
+tfoot td:first-child,
+tfoot td:nth-child(2) {
+  font-weight: 700;
+}
+
+/* Hover de filas */
+tbody tr:hover {
+  background-color: #fff0e6;
+  transition: 0.3s;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+th {
+  border-bottom: 2px solid #e0cfc4;
+}
+
+td {
+  color: #5a4e60;
+  font-size: 14px;
+}
+
+tfoot {
+  background-color: #fbeee3;
+  font-weight: bold;
+  color: #5a4e60;
+}
+
+tfoot td {
+  border-top: 2px solid #e0cfc4;
+}
+
+/* Botones dentro de la tabla */
+.tabla-btn {
+  background-color: #ffe0b3;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #4d3f38;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.tabla-btn:hover {
+  background-color: #ffc888;
+}
+
+.imagen-proveedor {
+  display: block;
+  margin: 20px auto;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
