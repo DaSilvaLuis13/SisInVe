@@ -66,6 +66,12 @@ function Reportes() {
 
   const imprimirGeneral = () => window.print();
 
+  const getLocalDateOnly = (date) => {
+    const local = new Date(date);
+    local.setHours(0, 0, 0, 0); // elimina la hora para que no afecte el día
+    return local;
+  };
+
   const imprimirFilasSeleccionadas = () => {
     if (filasSeleccionadas.length === 0) {
       alert('Selecciona al menos un registro');
@@ -133,19 +139,19 @@ function Reportes() {
     ],
     corteCaja: [
       { field: 'id', headerName: 'ID', width: 60 },
-      { field: 'fecha', headerName: 'Fecha', width: 110 },
+      { field: 'fecha', headerName: 'Fecha', width: 100 },
       { field: 'fondo_inicial', headerName: 'Fond. Inicial', width: 90 },
       { field: 'fondo_actual', headerName: 'Fond. Final', width: 90 },
       { field: 'ventas_total', headerName: 'Ventas', width: 90 },
-      { field: 'devoluciones_total', headerName: 'Devoluciones', width: 110 },
+      { field: 'devoluciones_total', headerName: 'Devoluciones', width: 90 },
       { field: 'fiado_total', headerName: 'Fiado', width: 70 },
       { field: 'pagos_total', headerName: 'Pagos', width: 80 },
       { field: 'retiros_total', headerName: 'Retiros', width: 80 },
       { field: 'depositos_total', headerName: 'Depósitos', width: 90 },
       { field: 'abonos_total', headerName: 'Abonos', width: 90 },
-      { field: 'total_entradas', headerName: 'Entradas', width: 110 },
-      { field: 'total_salidas', headerName: 'Salidas', width: 110 },
-      { field: 'ganancia_neta', headerName: 'Ganancia Neta', width: 120 },
+      { field: 'total_entradas', headerName: 'Entradas', width: 90 },
+      { field: 'total_salidas', headerName: 'Salidas', width: 90 },
+      { field: 'ganancia_neta', headerName: 'Ganancia Neta', width: 90 },
     ],
     productosVendidos: [
       { field: 'id_producto', headerName: 'ID Producto', width: 100 },
@@ -177,7 +183,9 @@ function Reportes() {
 
   const datosConTotales = tipoReportes === 'corteCaja' ? [...data, calcularTotales(data)] : data;
 
-  const rowsConId = datosConTotales.map((r, i) => ({
+  const rowsConId = datosConTotales
+  .filter(r => r !== null && r !== undefined) // 👈 evita nulls
+  .map((r, i) => ({
     ...r,
     _gridId: r.id ?? r.id_producto ?? r.tipo_pago ?? i
   }));
@@ -216,8 +224,11 @@ function Reportes() {
 
       {['ventas', 'devolucion', 'corteCaja'].includes(tipoReportes) && (
         <div className="filtros-fecha justify-content-center">
-          <DatePicker selected={fechaInicio} onChange={setFechaInicio} placeholderText="Fecha inicio" />
-          <DatePicker selected={fechaFin} onChange={setFechaFin} placeholderText="Fecha fin" />
+          <DatePicker selected={fechaInicio} onChange={setFechaInicio}   maxDate={getLocalDateOnly(new Date())}
+ placeholderText="Fecha inicio" />
+          <DatePicker selected={fechaFin} onChange={setFechaFin}   minDate={fechaInicio} // evita elegir antes del inicio
+  maxDate={new Date()}
+ placeholderText="Fecha fin" />
         </div>
       )}
 

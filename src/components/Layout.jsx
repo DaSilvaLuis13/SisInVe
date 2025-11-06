@@ -1,18 +1,17 @@
 // src/components/Layout.jsx
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { supabase } from "../services/client";
-import AperturaDeCaja from "../pages/AperturaDeCaja"; // ajustar ruta si tu estructura es distinta
+import { useState } from "react";
+import { useCaja } from "../context/CajaContext";
+import AperturaDeCaja from "../pages/AperturaDeCaja";
 import "./layout.css";
 
 function Layout() {
   const location = useLocation();
+  const { cajaAbierta, loading } = useCaja();
   const [openSections, setOpenSections] = useState({});
-  const [cajaAbierta, setCajaAbierta] = useState(false);
-  const [cargando, setCargando] = useState(true);
 
   const toggleSection = (section) => {
-    setOpenSections(prev => ({
+    setOpenSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
@@ -26,6 +25,7 @@ function Layout() {
       links: [
         { label: "Registrar/Editar Productos", path: "/productos" },
         { label: "Movimientos de Inventario", path: "/movimiento-inventario" },
+        { label: "Consulta Productos", path: "/consulta-productos" },
       ],
     },
     {
@@ -33,12 +33,14 @@ function Layout() {
       links: [
         { label: "Registrar/Editar Clientes", path: "/clientes" },
         { label: "Saldo de Cliente", path: "/saldo-cliente" },
+        { label: "Consulta Clientes", path: "/consulta-clientes" },
       ],
     },
     {
       title: "Proveedores",
       links: [
         { label: "Registrar/Editar Proveedores", path: "/proveedores" },
+        { label: "Consulta Proveedores", path: "/consulta-proveedores" },
       ],
     },
     {
@@ -71,55 +73,22 @@ function Layout() {
     },
   ];
 
-  useEffect(() => {
-    // Verifica si hay una caja abierta para hoy (sin usuarios)
-    const verificarCaja = async () => {
-      setCargando(true);
-      try {
-        const hoy = new Date().toISOString().split("T")[0];
-        const { data, error } = await supabase
-          .from("CorteCaja")
-          .select("id, fecha, estado")
-          .eq("fecha", hoy)
-          .eq("estado", "abierta");
-
-        if (error) {
-          console.error("Error verificando caja:", error);
-          setCajaAbierta(false);
-        } else {
-          setCajaAbierta(Array.isArray(data) && data.length > 0);
-        }
-      } catch (err) {
-        console.error("Error inesperado verificando caja:", err);
-        setCajaAbierta(false);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    verificarCaja();
-    // Si quieres que re-verifique cada X segundos/minutos activa un interval aquí
-  }, []);
-
-  // handler para cuando AperturaDeCaja indique que ya abrió la caja
-  const handleCajaAbierta = () => {
-    setCajaAbierta(true);
-  };
-
-  if (cargando) {
+  if (loading) {
     return (
-      <div style={{ minHeight: "100vh" }} className="d-flex justify-content-center align-items-center">
+      <div
+        style={{ minHeight: "100vh" }}
+        className="d-flex justify-content-center align-items-center"
+      >
         <div>Cargando sistema...</div>
       </div>
     );
   }
 
-  // Si no hay caja abierta, mostramos el componente de apertura (impide acceso al resto)
+  // Si no hay caja abierta, mostramos pantalla de apertura
   if (!cajaAbierta) {
-    return <AperturaDeCaja onCajaAbierta={handleCajaAbierta} />;
+    return <AperturaDeCaja />;
   }
 
-  // Si hay caja abierta, renderizamos layout completo con sidebar + contenido (Outlet)
   return (
     <div className="d-flex container-first" style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
@@ -133,11 +102,14 @@ function Layout() {
           top: 0,
         }}
       >
-
-        <div className="sisInVe">
-          <img src="/LogoSisInVe.jpg" alt="SisInVe Logo" style={{ width: "120px", height: "120px", margin: "10px" }} />
+        <div className="sisInVe text-center mb-3">
+          <img
+            src="/LogoSisInVe.jpg"
+            alt="SisInVe Logo"
+            style={{ width: "120px", height: "120px", margin: "10px auto" }}
+          />
         </div>
-        
+
         {sections.map((section) => (
           <div key={section.title} className="mb-2">
             <div
@@ -153,15 +125,15 @@ function Layout() {
                 backgroundColor: "#f9f5f2",
                 transition: "background-color 0.2s",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f0e6df"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#f9f5f2"}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0e6df")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f9f5f2")}
             >
               {section.title}
             </div>
 
             {openSections[section.title] && (
               <ul className="list-unstyled mt-1 ps-3">
-                {section.links.map(link => (
+                {section.links.map((link) => (
                   <li key={link.path} className="mb-1">
                     <Link
                       to={link.path}

@@ -1,25 +1,27 @@
+// src/pages/AperturaDeCaja.jsx
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
 import { useNavigate } from "react-router-dom";
+import { useCaja } from "../context/CajaContext";
 import "./aperturaCaja.css";
 
-function AperturaDeCaja({ onCajaAbierta }) {
+function AperturaDeCaja() {
   const [fondoInicial, setFondoInicial] = useState("");
   const [fechaActual, setFechaActual] = useState("");
   const [horaActual, setHoraActual] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const navigate = useNavigate(); // <-- para redirigir
+  const { setCajaAbierta } = useCaja();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const ahora = new Date();
-    setFechaActual(ahora.toISOString().split("T")[0]);
-    setHoraActual(ahora.toTimeString().split(" ")[0]);
+    setFechaActual(ahora.toLocaleDateString('en-CA'));
+    setHoraActual(ahora.toLocaleTimeString('en-GB'));
   }, []);
 
   const abrirCaja = async () => {
     try {
-      const hoy = new Date().toISOString().split("T")[0];
+      const hoy = new Date().toLocaleDateString('en-CA');
 
       // Verificar si ya hay caja abierta
       const { data: cajaHoy, error: errorCheck } = await supabase
@@ -29,7 +31,6 @@ function AperturaDeCaja({ onCajaAbierta }) {
         .eq("estado", "abierta");
 
       if (errorCheck) throw errorCheck;
-
       if (cajaHoy?.length > 0) {
         alert("❌ Ya hay una caja abierta para hoy.");
         return;
@@ -44,22 +45,16 @@ function AperturaDeCaja({ onCajaAbierta }) {
 
       const { error } = await supabase.from("CorteCaja").insert({
         fecha: hoy,
-        hora_inicio: new Date().toTimeString().split(" ")[0],
+        hora_inicio: new Date().toLocaleTimeString('en-GB'),
         fondo_inicial: fondoInicial,
         estado: "abierta",
       });
 
       if (error) throw error;
 
-      setFondoInicial("");
       alert("✅ Caja abierta correctamente");
-
-      // Avisamos al Layout que la caja ya está abierta
-      onCajaAbierta();
-
-      // 🔹 Redirigimos al Home
-      navigate("/", { replace: true });
-
+      setCajaAbierta(true); // 🔹 Actualiza el contexto global
+      navigate("/", { replace: true }); // Redirige al home
     } catch (error) {
       console.error("Error al abrir caja:", error.message);
       alert("❌ Error al abrir la caja");
@@ -76,29 +71,19 @@ function AperturaDeCaja({ onCajaAbierta }) {
         <form>
           <div className="mb-3">
             <label className="form-label apertura-label fw-semibold">Fecha</label>
-            <input
-              type="text"
-              className="form-control apertura-input text-center"
-              value={fechaActual}
-              disabled
-            />
+            <input type="text" className="form-control text-center" value={fechaActual} disabled />
           </div>
 
           <div className="mb-3">
             <label className="form-label apertura-label fw-semibold">Hora</label>
-            <input
-              type="text"
-              className="form-control apertura-input text-center"
-              value={horaActual}
-              disabled
-            />
+            <input type="text" className="form-control text-center" value={horaActual} disabled />
           </div>
 
           <div className="mb-4">
             <label className="form-label apertura-label fw-semibold">Fondo Inicial</label>
             <input
               type="number"
-              className="form-control apertura-input text-center"
+              className="form-control text-center"
               value={fondoInicial}
               onChange={(e) => setFondoInicial(e.target.value)}
               placeholder="Ingresa el monto inicial"

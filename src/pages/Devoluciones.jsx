@@ -174,8 +174,8 @@ function Devoluciones() {
     if (tipoDevolucion === "credito" && !seleccion.cliente) return alert("Selecciona un cliente para crédito.");
 
     setIsSubmitting(true);
-    const fecha = new Date().toISOString().split("T")[0];
-    const hora = new Date().toTimeString().split(" ")[0];
+    const fecha = new Date().toLocaleDateString('en-CA');
+    const hora = new Date().toLocaleTimeString('en-GB');
 
     try {
       // Validación de saldo del cliente
@@ -279,8 +279,7 @@ function Devoluciones() {
     await registrarDevolucion();
   };
 
-  const botonDisabled = isSubmitting ||
-    (tipoDevolucion === "credito" && seleccion.cliente && (saldoCliente <= 0 || total > saldoCliente));
+  const botonDisabled = isSubmitting
 
   return (
     <div className="devoluciones-container my-4">
