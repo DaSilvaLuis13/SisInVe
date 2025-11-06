@@ -1,9 +1,15 @@
+// src/components/Layout.jsx
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../services/client";
+import AperturaDeCaja from "../pages/AperturaDeCaja"; // ajustar ruta si tu estructura es distinta
+import "./layout.css";
 
 function Layout() {
   const location = useLocation();
   const [openSections, setOpenSections] = useState({});
+  const [cajaAbierta, setCajaAbierta] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
   const toggleSection = (section) => {
     setOpenSections(prev => ({
@@ -52,7 +58,6 @@ function Layout() {
     {
       title: "Caja",
       links: [
-        { label: "Apertura de Caja", path: "/apertura-caja" },
         { label: "Cierre de Caja", path: "/cierre-caja" },
         { label: "Movimientos de Caja", path: "/movimiento-caja" },
       ],
@@ -66,6 +71,55 @@ function Layout() {
     },
   ];
 
+  useEffect(() => {
+    // Verifica si hay una caja abierta para hoy (sin usuarios)
+    const verificarCaja = async () => {
+      setCargando(true);
+      try {
+        const hoy = new Date().toISOString().split("T")[0];
+        const { data, error } = await supabase
+          .from("CorteCaja")
+          .select("id, fecha, estado")
+          .eq("fecha", hoy)
+          .eq("estado", "abierta");
+
+        if (error) {
+          console.error("Error verificando caja:", error);
+          setCajaAbierta(false);
+        } else {
+          setCajaAbierta(Array.isArray(data) && data.length > 0);
+        }
+      } catch (err) {
+        console.error("Error inesperado verificando caja:", err);
+        setCajaAbierta(false);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    verificarCaja();
+    // Si quieres que re-verifique cada X segundos/minutos activa un interval aquí
+  }, []);
+
+  // handler para cuando AperturaDeCaja indique que ya abrió la caja
+  const handleCajaAbierta = () => {
+    setCajaAbierta(true);
+  };
+
+  if (cargando) {
+    return (
+      <div style={{ minHeight: "100vh" }} className="d-flex justify-content-center align-items-center">
+        <div>Cargando sistema...</div>
+      </div>
+    );
+  }
+
+  // Si no hay caja abierta, mostramos el componente de apertura (impide acceso al resto)
+  if (!cajaAbierta) {
+    return <AperturaDeCaja onCajaAbierta={handleCajaAbierta} />;
+  }
+
+  // Si hay caja abierta, renderizamos layout completo con sidebar + contenido (Outlet)
   return (
     <div className="d-flex container-first" style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
@@ -73,14 +127,17 @@ function Layout() {
         className="bg-light border-end p-3"
         style={{
           width: "250px",
-          height: "100vh",          // altura completa
-          overflowY: "auto",        // scroll si hay muchas secciones
-          position: "sticky",       // permanece visible al hacer scroll
+          height: "100vh",
+          overflowY: "auto",
+          position: "sticky",
           top: 0,
         }}
       >
-        <h2 className="mb-4">SisInVe</h2>
 
+        <div className="sisInVe">
+          <img src="/LogoSisInVe.jpg" alt="SisInVe Logo" style={{ width: "120px", height: "120px", margin: "10px" }} />
+        </div>
+        
         {sections.map((section) => (
           <div key={section.title} className="mb-2">
             <div

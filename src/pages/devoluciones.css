@@ -1,48 +1,136 @@
+/* devoluciones.css (adaptado de ventas.css) */
+
 .devoluciones-container {
-    background-color: #fef6e4;
-    padding: 2rem;
-    box-shadow: 8px 8px 10px #ff8c42;
+  padding: 2rem;
+  background-color: #fef6e4;
+  border-radius: 12px;
+  box-shadow: 8px 8px 10px #ff8c42;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.devoluciones-title {
-  color: #ff8c42;
+.devoluciones-card {
+  background-color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.devoluciones-filtros-card {
-  background-color: #fff7f0;
-}
-
-.devoluciones-input,
-.devoluciones-select,
-.devoluciones-datepicker {
-  border-radius: 0.5rem;
+.devoluciones-card-title {
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #5a4030;
 }
 
 .devoluciones-table {
-  background-color: #fff7f0;
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.devoluciones-row td {
+.devoluciones-table th,
+.devoluciones-table td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+}
+
+.devoluciones-total {
+  font-weight: 700;
+  color: #333;
+}
+
+.devoluciones-modal-overlay {
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.devoluciones-modal-content {
   background-color: #fff;
-  color: #333;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 800px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.devoluciones-btn-primary {
-  background-color: #ffd6a5;
+.devoluciones-input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.btn-devoluciones-primary {
+  background-color: #0275d8;
+  color: #fff;
   border: none;
-  color: #333;
-  border-radius: 0.5rem;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
 }
 
-.devoluciones-btn-primary:hover {
-  background-color: #ffcc80;
+.btn-devoluciones-primary:hover {
+  opacity: 0.85;
 }
 
-.devoluciones-ticket-card {
-  background-color: #fff7f0;
+.btn-devoluciones-success {
+  background-color: #5cb85c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
 }
 
-.devoluciones-ticket-table th {
-  background-color: #ffd6a5;
-  color: #333;
+.btn-devoluciones-success:hover {
+  opacity: 0.85;
+}
+
+.btn-devoluciones-danger {
+  background-color: #d9534f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+.btn-devoluciones-danger:hover {
+  opacity: 0.85;
+}
+
+.btn-devoluciones-warning {
+  background-color: #f0ad4e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+.btn-devoluciones-warning:hover {
+  opacity: 0.85;
+}
+
+.d-flex.gap-1 button {
+  min-width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.d-flex.gap-3 button {
+  min-width: 80px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.text-end {
+  text-align: right;
 }
