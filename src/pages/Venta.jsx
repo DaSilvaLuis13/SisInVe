@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import Busqueda from "../components/Busqueda";
 import { supabase } from "../services/client";
 import "./ventas.css";
+import { useNavigate } from "react-router-dom";
+
 
 function Venta() {
   const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
@@ -10,6 +12,8 @@ function Venta() {
   const [clientes, setClientes] = useState([]);
   const [productos, setProductos] = useState([]);
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+  const navigate = useNavigate();
+
 
   const [productoMedida, setProductoMedida] = useState(null);
   const [cantidadMedida, setCantidadMedida] = useState("");
@@ -59,9 +63,8 @@ function Venta() {
 
       if (productoData.stock_actual <= 0) {
         alert(
-          `⚠️ El producto "${productoData.nombre}" no tiene stock disponible.\nRedirigiendo a Movimientos de Inventario.`
+          `⚠️ El producto "${productoData.nombre}" no tiene stock disponible.`
         );
-        window.location.href = "/movimiento-inventario";
         return;
       }
 
@@ -239,8 +242,9 @@ function Venta() {
 
         if (prod) {
           if (prod.stock_actual <= 0) {
-            alert(`🚫 El producto "${prod.nombre}" no tiene stock disponible. No se puede procesar la venta.`);
-            window.location.href = "/movimiento-inventario";
+                        alert(`🚫 El producto "${prod.nombre}" no tiene stock disponible. No se puede procesar la venta.`);
+
+           // window.location.href = "/movimiento-inventario";
             return;
           }
 
@@ -258,8 +262,8 @@ function Venta() {
       }
 
       const ahora = new Date();
-      const fechaSQL = ahora.toISOString().split("T")[0];
-      const horaSQL = ahora.toTimeString().split(" ")[0];
+      const fechaSQL = ahora.toLocaleDateString('en-CA');
+      const horaSQL = ahora.toLocaleTimeString('en-GB');
 
       const { data: corteData } = await supabase
         .from("CorteCaja")
@@ -274,6 +278,29 @@ function Venta() {
       }
 
       const idCorte = corteData[0].id;
+
+      if (tipoPago === "Crédito" && seleccion.cliente) {
+        const idCliente = seleccion.cliente.id;
+
+        // Obtener saldo actual y límite
+        const { data: saldoData } = await supabase
+          .from("SaldoCliente")
+          .select("monto_que_pagar")
+          .eq("id_cliente", idCliente)
+          .maybeSingle();
+
+        const saldoActual = Number(saldoData?.monto_que_pagar || 0);
+        const limite = Number(seleccion.cliente.limite_credito || 0);
+        const nuevoSaldo = saldoActual + total;
+
+        if (limite > 0 && nuevoSaldo > limite) {
+          alert(`🚫 El cliente ha alcanzado su límite de crédito.
+      Saldo actual: $${saldoActual.toFixed(2)}
+      Límite permitido: $${limite.toFixed(2)}
+      Esta venta ($${total.toFixed(2)}) excedería su límite.`);
+          return; // ❌ Detiene la venta
+        }
+      }
 
       const { data: ventaData } = await supabase
         .from("Ventas")

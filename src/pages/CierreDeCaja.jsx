@@ -26,7 +26,7 @@ function CierreDeCaja() {
         const ultimoCorte = data[0];
         setCorte(ultimoCorte);
 
-        const hora = new Date().toTimeString().split(" ")[0];
+        const hora = new Date().toLocaleTimeString('en-GB');
         setHoraFinal(hora);
 
         const total =

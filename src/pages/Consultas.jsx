@@ -78,6 +78,8 @@ function Consultas() {
     error ? setError('Error: ' + error.message) : setResultados(data);
   };
 
+  const hoy = new Date();
+
   return (
   <div className="consultas-container container my-5">
     <div className="d-flex justify-content-between align-items-center mb-4">
@@ -105,6 +107,7 @@ function Consultas() {
             onChange={setFechaInicio}
             dateFormat="yyyy-MM-dd"
             placeholderText="Selecciona fecha inicio"
+            maxDate={hoy}
           />
         </div>
         <div className="col-md-6">
@@ -115,6 +118,8 @@ function Consultas() {
             onChange={setFechaFin}
             dateFormat="yyyy-MM-dd"
             placeholderText="Selecciona fecha fin"
+            minDate={fechaInicio || null}
+            maxDate={hoy}
           />
         </div>
       </div>

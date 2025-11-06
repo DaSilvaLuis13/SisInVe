@@ -1,10 +1,9 @@
 import './App.css'
 import { Routes, Route } from 'react-router-dom'
-
-import { CajaProvider } from './context/CajaContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
-
 import Layout from './components/Layout'
+
+// Páginas
 import AperturaDeCaja from './pages/AperturaDeCaja'
 import CierreDeCaja from './pages/CierreDeCaja'
 import ConsultaClientes from './pages/ConsultaClientes'
@@ -27,153 +26,46 @@ import Reportes from './pages/Reportes'
 
 function App() {
   return (
-    <CajaProvider>
-      <Routes>
-        {/* Todas las rutas dentro del Layout */}
-        <Route path='/' element={<Layout />}>
-          <Route index element={<Home />} />
+    <Routes>
+      {/* Todas las rutas dentro del Layout */}
+      <Route path='/' element={<Layout />}>
+        <Route index element={<Home />} />
 
-          {/* Productos */}
-          <Route
-            path='productos'
-            element={
-              <ProtectedRoute>
-                <Productos />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='consulta-productos'
-            element={
-              <ProtectedRoute>
-                <ConsultaProductos />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='movimiento-inventario'
-            element={
-              <ProtectedRoute>
-                <MovimientoInventario />
-              </ProtectedRoute>
-            }
-          />
+        {/* Productos */}
+        <Route path='productos' element={<ProtectedRoute><Productos /></ProtectedRoute>} />
+        <Route path='consulta-productos' element={<ProtectedRoute><ConsultaProductos /></ProtectedRoute>} />
+        <Route path='movimiento-inventario' element={<ProtectedRoute><MovimientoInventario /></ProtectedRoute>} />
 
-          {/* Clientes */}
-          <Route
-            path='clientes'
-            element={
-              <ProtectedRoute>
-                <Clientes />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='consulta-clientes'
-            element={
-              <ProtectedRoute>
-                <ConsultaClientes />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='saldo-cliente'
-            element={
-              <ProtectedRoute>
-                <SaldoCliente />
-              </ProtectedRoute>
-            }
-          />
+        {/* Clientes */}
+        <Route path='clientes' element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+        <Route path='consulta-clientes' element={<ProtectedRoute><ConsultaClientes /></ProtectedRoute>} />
+        <Route path='saldo-cliente' element={<ProtectedRoute><SaldoCliente /></ProtectedRoute>} />
 
-          {/* Proveedores */}
-          <Route
-            path='proveedores'
-            element={
-              <ProtectedRoute>
-                <Proveedores />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='consulta-proveedores'
-            element={
-              <ProtectedRoute>
-                <ConsultaProveedores />
-              </ProtectedRoute>
-            }
-          />
+        {/* Proveedores */}
+        <Route path='proveedores' element={<ProtectedRoute><Proveedores /></ProtectedRoute>} />
+        <Route path='consulta-proveedores' element={<ProtectedRoute><ConsultaProveedores /></ProtectedRoute>} />
 
-          {/* Ventas y detalles */}
-          <Route
-            path='venta'
-            element={
-              <ProtectedRoute>
-                <Venta />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='detalle-venta'
-            element={
-              <ProtectedRoute>
-                <DetalleVenta />
-              </ProtectedRoute>
-            }
-          />
+        {/* Ventas y detalles */}
+        <Route path='venta' element={<ProtectedRoute><Venta /></ProtectedRoute>} />
+        <Route path='detalle-venta' element={<ProtectedRoute><DetalleVenta /></ProtectedRoute>} />
 
-          {/* Devoluciones */}
-          <Route
-            path='devoluciones'
-            element={
-              <ProtectedRoute>
-                <Devoluciones />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='detalle-devoluciones'
-            element={
-              <ProtectedRoute>
-                <DetalleDevoluciones />
-              </ProtectedRoute>
-            }
-          />
+        {/* Devoluciones */}
+        <Route path='devoluciones' element={<ProtectedRoute><Devoluciones /></ProtectedRoute>} />
+        <Route path='detalle-devoluciones' element={<ProtectedRoute><DetalleDevoluciones /></ProtectedRoute>} />
 
-          {/* Caja */}
-          <Route path='apertura-caja' element={<AperturaDeCaja />} />
-          <Route path='cierre-caja' element={<CierreDeCaja />} />
-          <Route
-            path='movimiento-caja'
-            element={
-              <ProtectedRoute>
-                <MovimientoCaja />
-              </ProtectedRoute>
-            }
-          />
+        {/* Caja */}
+        <Route path='apertura-caja' element={<AperturaDeCaja />} />
+        <Route path='cierre-caja' element={<CierreDeCaja />} />
+        <Route path='movimiento-caja' element={<ProtectedRoute><MovimientoCaja /></ProtectedRoute>} />
 
-          {/* Consultas y reportes */}
-          <Route
-            path='consultas'
-            element={
-              <ProtectedRoute>
-                <Consultas />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='reportes'
-            element={
-              <ProtectedRoute>
-                <Reportes />
-              </ProtectedRoute>
-            }
-          />
+        {/* Consultas y reportes */}
+        <Route path='consultas' element={<ProtectedRoute><Consultas /></ProtectedRoute>} />
+        <Route path='reportes' element={<ProtectedRoute><Reportes /></ProtectedRoute>} />
 
-          {/* Página no encontrada */}
-          <Route path='*' element={<NotFound />} />
-        </Route>
-      </Routes>
-    </CajaProvider>
+        {/* Página no encontrada */}
+        <Route path='*' element={<NotFound />} />
+      </Route>
+    </Routes>
   )
 }
 
