@@ -62,8 +62,6 @@ function App() {
         <Route path='consultas' element={<ProtectedRoute><Consultas /></ProtectedRoute>} />
         <Route path='reportes' element={<ProtectedRoute><Reportes /></ProtectedRoute>} />
 
-        <Route path='ayuda' element={<Ayuda />} />
-        
         {/* Página no encontrada */}
         <Route path='*' element={<NotFound />} />
       </Route>
