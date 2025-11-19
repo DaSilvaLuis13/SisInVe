@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../services/client";
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+} from "../utils/alerts"; // ✅ Importación de tus alertas
 import "./productos.css";
 
 function Productos() {
@@ -16,6 +21,7 @@ function Productos() {
   const [stockInicial, setStockInicial] = useState("");
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const limpiarFormulario = () => {
     setIdProducto(null);
@@ -30,18 +36,18 @@ function Productos() {
     setStockInicial("");
   };
 
-const navigate = useNavigate();
+  const ayuda = () => {
+    navigate("/ayuda#registrar");
+  };
 
-const ayuda = () => {
-  navigate('/ayuda#registrar');
-};
-
+  // --- Cálculos automáticos ---
   useEffect(() => {
     const c = Number(costo) || 0;
     const g = Number(ganancia) || 0;
     if (c > 0 && document.activeElement?.id === "ganancia") {
       const nuevoPrecio = c + (c * g) / 100;
-      if (nuevoPrecio.toFixed(2) !== precioVenta) setPrecioVenta(nuevoPrecio.toFixed(2));
+      if (nuevoPrecio.toFixed(2) !== precioVenta)
+        setPrecioVenta(nuevoPrecio.toFixed(2));
     }
   }, [ganancia]);
 
@@ -50,7 +56,8 @@ const ayuda = () => {
     const pv = Number(precioVenta) || 0;
     if (c > 0 && document.activeElement?.id === "precioVenta") {
       const nuevoPorcentaje = ((pv - c) / c) * 100;
-      if (nuevoPorcentaje.toFixed(2) !== ganancia) setGanancia(nuevoPorcentaje.toFixed(2));
+      if (nuevoPorcentaje.toFixed(2) !== ganancia)
+        setGanancia(nuevoPorcentaje.toFixed(2));
     }
   }, [precioVenta]);
 
@@ -59,20 +66,24 @@ const ayuda = () => {
     const g = Number(ganancia) || 0;
     if (c > 0 && document.activeElement?.id === "costo") {
       const nuevoPrecio = c + (c * g) / 100;
-      if (nuevoPrecio.toFixed(2) !== precioVenta) setPrecioVenta(nuevoPrecio.toFixed(2));
+      if (nuevoPrecio.toFixed(2) !== precioVenta)
+        setPrecioVenta(nuevoPrecio.toFixed(2));
     }
   }, [costo]);
 
+  // --- Crear producto ---
   const crearProducto = async (e) => {
     e.preventDefault();
+
     if (!nombre || !unidadMedida || !costo || !ganancia || !precioVenta) {
-      alert("Por favor, completa todos los campos obligatorios.");
+      alertaInfo("Por favor, completa todos los campos obligatorios.");
       return;
     }
+
     const min = stockMinimo === "" ? 0 : Number(stockMinimo);
     const max = stockMaximo === "" ? null : Number(stockMaximo);
     if (max !== null && min > max) {
-      alert("El stock mínimo no puede ser mayor que el máximo.");
+      alertaInfo("El stock mínimo no puede ser mayor que el máximo.");
       return;
     }
 
@@ -90,25 +101,29 @@ const ayuda = () => {
       });
 
       if (error) throw error;
+
       limpiarFormulario();
-      alert("✅ Producto registrado con éxito.");
+      alertaExito("Producto registrado con éxito.");
       console.log("Producto creado:", data);
     } catch (error) {
-      alert(`❌ Error al registrar el producto: ${error.message}`);
+      alertaError(`Error al registrar el producto: ${error.message}`);
       console.error(error);
     }
   };
 
+  // --- Actualizar producto ---
   const actualizarProducto = async (e) => {
     e.preventDefault();
+
     if (!idProducto) {
-      alert("Primero selecciona un producto para actualizar.");
+      alertaInfo("Primero selecciona un producto para actualizar.");
       return;
     }
+
     const min = stockMinimo === "" ? 0 : Number(stockMinimo);
     const max = stockMaximo === "" ? null : Number(stockMaximo);
     if (max !== null && min > max) {
-      alert("El stock mínimo no puede ser mayor que el máximo.");
+      alertaInfo("El stock mínimo no puede ser mayor que el máximo.");
       return;
     }
 
@@ -128,15 +143,17 @@ const ayuda = () => {
         .eq("id", idProducto);
 
       if (error) throw error;
+
       limpiarFormulario();
-      alert("✅ Producto actualizado con éxito.");
+      alertaExito("Producto actualizado con éxito.");
       console.log("Producto actualizado:", data);
     } catch (error) {
-      alert(`❌ Error al actualizar el producto: ${error.message}`);
+      alertaError(`Error al actualizar el producto: ${error.message}`);
       console.error(error);
     }
   };
 
+  // --- Cargar producto si viene desde otra vista ---
   useEffect(() => {
     if (location.state?.producto) {
       const p = location.state.producto;

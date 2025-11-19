@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../services/client";
 import "./proveedores.css";
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+  alertaConfirmacion,
+} from "../utils/alerts";
 
 function Proveedores() {
   const [idProveedor, setIdProveedor] = useState(null);
   const [empresa, setEmpresa] = useState("");
   const [telefono, setTelefono] = useState("");
   const [errorTelefono, setErrorTelefono] = useState("");
+
+  const navigate = useNavigate();
+
+  const ayuda = () => {
+    navigate("/ayuda#registrar_Proveedor");
+  };
 
   const location = useLocation();
 
@@ -36,7 +48,7 @@ function Proveedores() {
   const crearProveedor = async (e) => {
     e.preventDefault();
     if (!empresa || !telefono) {
-      alert("Por favor, completa todos los campos.");
+      alertaInfo("Por favor, completa todos los campos.");
       return;
     }
     if (!validarTelefono(telefono)) return;
@@ -48,21 +60,21 @@ function Proveedores() {
       });
       if (error) throw error;
       limpiarFormulario();
-      alert("✅ Proveedor registrado con éxito.");
+      alertaExito("Proveedor registrado con éxito.");
     } catch (error) {
       console.error("❌ Error al registrar el proveedor:", error);
-      alert("❌ Error al registrar el proveedor");
+      alertaError("Error al registrar el proveedor.");
     }
   };
 
   const actualizarProveedor = async (e) => {
     e.preventDefault();
     if (!idProveedor) {
-      alert("Primero selecciona un proveedor para actualizar.");
+      alertaInfo("Primero selecciona un proveedor para actualizar.");
       return;
     }
     if (!empresa || !telefono) {
-      alert("Por favor, completa todos los campos.");
+      alertaInfo("Por favor, completa todos los campos.");
       return;
     }
     if (!validarTelefono(telefono)) return;
@@ -74,10 +86,10 @@ function Proveedores() {
         .eq("id", idProveedor);
       if (error) throw error;
       limpiarFormulario();
-      alert("✅ Proveedor actualizado con éxito.");
+      alertaExito("Proveedor actualizado con éxito.");
     } catch (error) {
       console.error("❌ Error al actualizar el proveedor:", error);
-      alert("❌ Error al actualizar el proveedor");
+      alertaError("Error al actualizar el proveedor.");
     }
   };
 
@@ -137,6 +149,7 @@ function Proveedores() {
             <button type="button" className="btn btn-danger" onClick={limpiarFormulario}>
               Cancelar
             </button>
+            <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
           </div>
         </form>
       </div>

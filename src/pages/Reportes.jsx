@@ -4,10 +4,17 @@ import { Button } from '@mui/material';
 import * as XLSX from 'xlsx';
 import { supabase } from '../services/client';
 import DatePicker from "react-datepicker";
+import { useNavigate } from 'react-router';
 import "react-datepicker/dist/react-datepicker.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./reportes.css";
 import jsPDF from "jspdf";
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+  alertaConfirmacion
+} from "../utils/alerts";
 
 function Reportes() {
   const [tipoReportes, setTipoReportes] = useState('ventas');
@@ -15,6 +22,12 @@ function Reportes() {
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaFin, setFechaFin] = useState(null);
   const [filasSeleccionadas, setFilasSeleccionadas] = useState([]);
+
+  const navigate = useNavigate();
+        
+  const ayuda = () => {
+    navigate('/ayuda#Reportes');
+  };
 
   const tablas = {
     ventas: 'Ventas',
@@ -36,7 +49,7 @@ function Reportes() {
             f_f: fechaFin.toISOString().split('T')[0],
           });
           if (!error) setData(data);
-          else console.error('Error en CorteCajaGanancia:', error);
+          else alertaError('Error en CorteCajaGanancia.');
           return;
         }
 
@@ -48,8 +61,9 @@ function Reportes() {
 
         const result = await query;
         if (!result.error) setData(result.data);
-        else console.error(`Error al cargar ${tabla}:`, result.error);
+        else alertaError(`Error al cargar ${tabla}.`);
       } catch (err) {
+        alertaError('Error general al obtener los datos.');
         console.error('Error general:', err);
       }
     };
@@ -57,24 +71,28 @@ function Reportes() {
   }, [tipoReportes, fechaInicio, fechaFin]);
 
   const exportarExcel = () => {
-    if (data.length === 0) return;
+    if (data.length === 0) {
+      alertaInfo('No hay datos para exportar.');
+      return;
+    }
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, tipoReportes);
     XLSX.writeFile(wb, `reporte_${tipoReportes}.xlsx`);
+    alertaExito('Reporte exportado a Excel con éxito.');
   };
 
   const imprimirGeneral = () => window.print();
 
   const getLocalDateOnly = (date) => {
     const local = new Date(date);
-    local.setHours(0, 0, 0, 0); // elimina la hora para que no afecte el día
+    local.setHours(0, 0, 0, 0);
     return local;
   };
 
   const imprimirFilasSeleccionadas = () => {
     if (filasSeleccionadas.length === 0) {
-      alert('Selecciona al menos un registro');
+      alertaInfo('Selecciona al menos un registro para imprimir.');
       return;
     }
 
@@ -103,10 +121,11 @@ function Reportes() {
         }
       });
 
-      y += 6; // espacio entre registros
+      y += 6;
     });
 
     doc.save(`reporte_${tipoReportes}.pdf`);
+    alertaExito('PDF generado correctamente.');
   };
 
   const calcularTotales = (rows) => {
@@ -184,13 +203,12 @@ function Reportes() {
   const datosConTotales = tipoReportes === 'corteCaja' ? [...data, calcularTotales(data)] : data;
 
   const rowsConId = datosConTotales
-  .filter(r => r !== null && r !== undefined) // 👈 evita nulls
-  .map((r, i) => ({
-    ...r,
-    _gridId: r.id ?? r.id_producto ?? r.tipo_pago ?? i
-  }));
+    .filter(r => r !== null && r !== undefined)
+    .map((r, i) => ({
+      ...r,
+      _gridId: r.id ?? r.id_producto ?? r.tipo_pago ?? i
+    }));
 
-  // Columnas con checkbox visual al inicio
   const columnasConCheckboxVisual = [
     {
       field: 'checkbox',
@@ -207,6 +225,7 @@ function Reportes() {
   return (
     <div className="container reportes-container">
       <h2 className="reportes-titulo text-center mb-4">📊 Reportes del Sistema</h2>
+            <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
 
       <div className="mb-3 text-center">
         {Object.keys(tablas).map((tipo) => (

@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
-import "./movimientoCaja.css"; // 👈 nuevo archivo CSS
+import "./movimientoCaja.css";
+import {
+  alertaError,
+  alertaExito,
+  alertaInfo,
+} from "../utils/alerts"; // ✅ importamos tus alertas
 
 function MovimientoCaja() {
   const [tipo, setTipo] = useState("");
@@ -25,6 +30,7 @@ function MovimientoCaja() {
         setCorteActual(data);
       } else {
         console.error("Error obteniendo el último corte:", error);
+        alertaError("No se pudo obtener el último corte de caja.");
       }
     };
     fetchUltimoCorte();
@@ -34,22 +40,24 @@ function MovimientoCaja() {
     const fetchProveedores = async () => {
       const { data, error } = await supabase.from("Proveedores").select("*");
       if (!error) setProveedores(data);
-      else console.error("Error obteniendo proveedores:", error);
+      else {
+        console.error("Error obteniendo proveedores:", error);
+        alertaError("Error al obtener la lista de proveedores.");
+      }
     };
     fetchProveedores();
   }, []);
 
   const registrarMovimiento = async () => {
     if (!tipo || !monto || !idCorte) {
-      alert("Completa todos los campos necesarios.");
+      alertaInfo("Completa todos los campos necesarios.");
       return;
     }
 
     if (parseFloat(monto) <= 0) {
-      alert("Ingresa una cantidad superior a 0");
+      alertaInfo("Ingresa una cantidad superior a 0.");
       return;
     }
-
 
     const fecha = new Date().toISOString().split("T")[0];
     const hora = new Date().toLocaleTimeString("es-ES", { hour12: false });
@@ -68,7 +76,7 @@ function MovimientoCaja() {
 
     if (error) {
       console.error("Error al registrar movimiento:", error);
-      alert("Error al registrar el movimiento.");
+      alertaError("Error al registrar el movimiento.");
       return;
     }
 
@@ -102,12 +110,12 @@ function MovimientoCaja() {
 
     if (updateError) {
       console.error("Error al actualizar corte:", updateError);
-      alert("Error al actualizar el corte.");
+      alertaError("Error al actualizar el corte.");
       return;
     }
 
     setCorteActual(nuevosTotales);
-    alert("✅ Movimiento registrado correctamente.");
+    alertaExito("Movimiento registrado correctamente.");
 
     setTipo("");
     setIdProveedor(null);

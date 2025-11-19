@@ -2,7 +2,7 @@ import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../services/client';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './consultas.css'; // 👈 CSS personalizado
 
 function Consultas() {
@@ -11,6 +11,11 @@ function Consultas() {
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaFin, setFechaFin] = useState(null);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+      
+      const ayuda = () => {
+        navigate('/ayuda#consultas');
+      };
 
   // 🔍 Consultas
   const getProductosConStock = async () => {
@@ -84,6 +89,8 @@ function Consultas() {
   <div className="consultas-container container my-5">
     <div className="d-flex justify-content-between align-items-center mb-4">
       <h1 className="consultas-title text-center flex-grow-1">Panel de Consultas</h1>
+                  <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
+
     </div>
 
     {/* 🔹 Sección de Productos */}

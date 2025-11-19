@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
-import { useCaja } from "../context/CajaContext"; // nuestro contexto
+import { useNavigate } from "react-router";
+import { useCaja } from "../context/CajaContext";
 import "./cierreCaja.css";
+
+// 🔔 Importamos las alertas personalizadas
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+  alertaConfirmacion,
+} from "../utils/alerts";
 
 function CierreDeCaja() {
   const [corte, setCorte] = useState(null);
@@ -11,6 +20,11 @@ function CierreDeCaja() {
   const [loading, setLoading] = useState(true);
 
   const { setCajaAbierta } = useCaja();
+  const navigate = useNavigate();
+
+  const ayuda = () => {
+    navigate("/ayuda#cierre_caja");
+  };
 
   useEffect(() => {
     const fetchUltimoCorte = async () => {
@@ -22,11 +36,12 @@ function CierreDeCaja() {
 
       if (error) {
         console.error("Error al cargar el corte:", error);
+        alertaError("Error al cargar los datos del corte.");
       } else if (data.length > 0) {
         const ultimoCorte = data[0];
         setCorte(ultimoCorte);
 
-        const hora = new Date().toLocaleTimeString('en-GB');
+        const hora = new Date().toLocaleTimeString("en-GB");
         setHoraFinal(hora);
 
         const total =
@@ -40,7 +55,10 @@ function CierreDeCaja() {
 
         setDineroActualEnCaja(total);
         setDiferencia(total - Number(ultimoCorte.fondo_inicial || 0));
+      } else {
+        alertaInfo("No se encontró una caja abierta para cerrar.");
       }
+
       setLoading(false);
     };
 
@@ -48,6 +66,17 @@ function CierreDeCaja() {
   }, []);
 
   const cerrarCaja = async () => {
+    if (!corte) {
+      alertaInfo("No hay una caja activa para cerrar.");
+      return;
+    }
+
+    const confirmar = await alertaConfirmacion(
+      `¿Deseas cerrar la caja con un total de $${dineroActualEnCaja}?`
+    );
+
+    if (!confirmar) return;
+
     try {
       const { error } = await supabase
         .from("CorteCaja")
@@ -61,21 +90,22 @@ function CierreDeCaja() {
 
       if (error) throw error;
 
-      // Bloquea todo el sistema
       setCajaAbierta(false);
+      await alertaExito("Caja cerrada correctamente.");
 
-      alert("✅ Caja cerrada correctamente");
-
-      // Redirige automáticamente a apertura de caja
       window.location.href = "/apertura-caja";
     } catch (error) {
       console.error("Error al cerrar caja:", error.message);
-      alert("❌ Error al cerrar caja");
+      alertaError("Error al cerrar la caja.");
     }
   };
 
   const imprimirTicket = () => {
-    if (!corte) return;
+    if (!corte) {
+      alertaInfo("No hay información de corte para imprimir.");
+      return;
+    }
+
     const ticketContent = `
       <div style="font-family: monospace; width: 280px; padding: 10px;">
         <div style="text-align:center;">
@@ -102,6 +132,7 @@ function CierreDeCaja() {
         <p style="text-align:center;">¡Gracias por su preferencia!</p>
       </div>
     `;
+
     const printWindow = window.open("", "_blank", "width=300,height=600");
     printWindow.document.write(ticketContent);
     printWindow.document.close();
@@ -115,6 +146,7 @@ function CierreDeCaja() {
     <div className="cierre-container d-flex justify-content-center align-items-center py-5">
       <div className="card cierre-card p-4">
         <h3 className="text-center mb-4 fw-bold cierre-title">🧾 Cierre de Caja</h3>
+            <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
 
         <div className="info-grid cierre-info-grid mb-4">
           <div className="cierre-label"><strong>ID Corte:</strong> {corte.id}</div>

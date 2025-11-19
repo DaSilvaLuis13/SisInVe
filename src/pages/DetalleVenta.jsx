@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { supabase } from "../services/client";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./detalleVenta.css";
+import { alertaError, alertaInfo } from "../utils/alerts";
 
 function DetalleVenta() {
   const [ventas, setVentas] = useState([]);
@@ -14,6 +16,12 @@ function DetalleVenta() {
   const [filtroTipoPago, setFiltroTipoPago] = useState("");
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaFin, setFechaFin] = useState(null);
+
+  const navigate = useNavigate();
+
+  const ayuda = () => {
+    navigate("/ayuda#detalle_venta");
+  };
 
   const hoy = new Date();
 
@@ -83,7 +91,10 @@ function DetalleVenta() {
   });
 
   const imprimirVentaSeleccionada = () => {
-    if (!ventaSeleccionada) return alert("No hay venta seleccionada");
+    if (!ventaSeleccionada) {
+      alertaInfo("No hay venta seleccionada");
+      return;
+    }
 
     let html = `<h3>Supermercado X - Venta #${ventaSeleccionada.id}</h3>`;
     html += `<p>Fecha: ${ventaSeleccionada.fecha} Hora: ${ventaSeleccionada.hora}</p>`;
@@ -94,7 +105,7 @@ function DetalleVenta() {
     html += "<hr/>";
     html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
     html += "<tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th></tr>";
-    detalleVenta.forEach(d => {
+    detalleVenta.forEach((d) => {
       html += `<tr>
         <td>${d.producto?.nombre || "-"}</td>
         <td>${d.cantidad}</td>
@@ -116,13 +127,14 @@ function DetalleVenta() {
       printWindow.print();
       printWindow.close();
     } else {
-      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+      alertaError("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
     }
   };
 
   return (
     <div className="detalleventa-container mt-4">
       <h2 className="text-center mb-4">Detalle de Ventas</h2>
+            <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
 
       {/* Filtros */}
       <div className="detalleventa-filtros card p-3 mb-4 shadow-sm">

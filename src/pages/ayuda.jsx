@@ -1,6 +1,5 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import './ayuda.css';
 import rp from '../assets/img/RegistrarProducto.png'
 import movin from '../assets/img/MovInv.png'
@@ -18,16 +17,37 @@ import c from '../assets/img/Consultas.png'
 import rep from '../assets/img/Reportes.png'
 
 function ayuda() {
-    const location = useLocation();
-    useEffect(() => {
-        if (location.hash) {
+      const location = useLocation();
+
+        useEffect(() => {
+            // --- Esta parte mantiene tu lógica actual ---
+            if (location.hash) {
             const id = location.hash.substring(1);
             const element = document.getElementById(id);
             if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
+                element.scrollIntoView({ behavior: "smooth" });
             }
-        }
+            }
+
+            // --- Esta parte es la que te faltaba ---
+            const handleAnchorClick = (event) => {
+            const target = event.target.closest("a[href^='#']");
+            if (target) {
+                event.preventDefault();
+                const id = target.getAttribute("href").substring(1);
+                const element = document.getElementById(id);
+                if (element) {
+                element.scrollIntoView({ behavior: "smooth" });
+                // opcional: actualizar el hash de la URL
+                window.history.pushState(null, "", `#${id}`);
+                }
+            }
+            };
+
+            document.addEventListener("click", handleAnchorClick);
+            return () => document.removeEventListener("click", handleAnchorClick);
         }, [location]);
+
 return(
     <div className="formulario-ayuda">
     <form>
@@ -36,28 +56,67 @@ return(
             ¡Bienvenido! Esta es la seccion de ayuda, donde usted encontrará la informacion necesaria para todos los apartados del sistema.
             Para acceder de forma rapida a una seccion haz clic en los siguientes enlaces:
         </p>
-        <strong>Sección Productos</strong><br/>
-        <a href="#registrar">Registrar/Editar un producto</a><br/>
-        <a href="#movimientosinv">Movimientos de Inventario</a><br/>
-        <strong>Sección Clientes</strong><br/>
-        <a href="#registrar_cliente">Registrar Cliente</a><br/>
-        <a href="#saldo_cliente">Saldo del cliente</a><br/>
-        <strong>Sección Proveedores</strong><br/>
-        <a href="#registrar_Proveedor">Registrar/Editar proveedor</a><br/>
-        <strong>Sección Ventas</strong><br/>
-        <a href="#registrar_venta">Registrar Venta</a><br/>
-        <a href="#detalle_venta">Detalle de ventas</a><br/>
-        <strong>Sección Devoluciones</strong><br/>
-        <a href="#registrar_devolucion">Registrar Devolución</a><br/>
-        <a href="#detalle_devolucion">Detalle de Devolución</a><br/>
-        <strong>Sección Caja</strong><br/>
-        <a href="#apertura_caja">Apertura de Caja</a><br/>
-        <a href="#cierre_caja">Cierre de Caja</a><br/>
-        <strong>Sección Consultas</strong><br/>
-        <a href="#consultas">Consultas</a><br/>
-        <a href="#Reportes">Reportes</a>
-        <br/><hr/>
+        <nav className="menu-ayuda">
+  <ul>
+    <li>
+      <strong className="menu-titulo">Sección Productos</strong>
+      <ul>
+        <li><a href="#registrar" className="menu-link">Registrar/Editar un producto</a></li>
+        <li><a href="#movimientosinv" className="menu-link">Movimientos de Inventario</a></li>
+      </ul>
+    </li>
 
+    <li>
+      <strong className="menu-titulo">Sección Clientes</strong>
+      <ul>
+        <li><a href="#registrar_cliente" className="menu-link">Registrar Cliente</a></li>
+        <li><a href="#saldo_cliente" className="menu-link">Saldo del cliente</a></li>
+      </ul>
+    </li>
+
+    <li>
+      <strong className="menu-titulo">Sección Proveedores</strong>
+      <ul>
+        <li><a href="#registrar_Proveedor" className="menu-link">Registrar/Editar proveedor</a></li>
+      </ul>
+    </li>
+
+    <li>
+      <strong className="menu-titulo">Sección Ventas</strong>
+      <ul>
+        <li><a href="#registrar_venta" className="menu-link">Registrar Venta</a></li>
+        <li><a href="#detalle_venta" className="menu-link">Detalle de ventas</a></li>
+      </ul>
+    </li>
+
+    <li>
+      <strong className="menu-titulo">Sección Devoluciones</strong>
+      <ul>
+        <li><a href="#registrar_devolucion" className="menu-link">Registrar Devolución</a></li>
+        <li><a href="#detalle_devolucion" className="menu-link">Detalle de Devolución</a></li>
+      </ul>
+    </li>
+
+    <li>
+      <strong className="menu-titulo">Sección Caja</strong>
+      <ul>
+        <li><a href="#apertura_caja" className="menu-link">Apertura de Caja</a></li>
+        <li><a href="#cierre_caja" className="menu-link">Cierre de Caja</a></li>
+      </ul>
+    </li>
+
+    <li>
+      <strong className="menu-titulo">Sección Consultas</strong>
+      <ul>
+        <li><a href="#consultas" className="menu-link">Consultas</a></li>
+        <li><a href="#Reportes" className="menu-link">Reportes</a></li>
+      </ul>
+    </li>
+  </ul>
+  <hr className="linea-divisoria" />
+</nav>
+
+    
         <h2>Sección Productos</h2>
         <h3 id="registrar">Registrar/Editar un producto</h3>
         <p>Este formulario permite registrar y editar nuevos y viejos productos en el sistema, asignando su información básica, precios y niveles de inventario</p>

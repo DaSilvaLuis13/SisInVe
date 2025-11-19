@@ -4,6 +4,11 @@ import { supabase } from "../services/client";
 import { useNavigate } from "react-router-dom";
 import { useCaja } from "../context/CajaContext";
 import "./aperturaCaja.css";
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+} from "../utils/alerts";
 
 function AperturaDeCaja() {
   const [fondoInicial, setFondoInicial] = useState("");
@@ -15,13 +20,13 @@ function AperturaDeCaja() {
 
   useEffect(() => {
     const ahora = new Date();
-    setFechaActual(ahora.toLocaleDateString('en-CA'));
-    setHoraActual(ahora.toLocaleTimeString('en-GB'));
+    setFechaActual(ahora.toLocaleDateString("en-CA"));
+    setHoraActual(ahora.toLocaleTimeString("en-GB"));
   }, []);
 
   const abrirCaja = async () => {
     try {
-      const hoy = new Date().toLocaleDateString('en-CA');
+      const hoy = new Date().toLocaleDateString("en-CA");
 
       // Verificar si ya hay caja abierta
       const { data: cajaHoy, error: errorCheck } = await supabase
@@ -32,12 +37,12 @@ function AperturaDeCaja() {
 
       if (errorCheck) throw errorCheck;
       if (cajaHoy?.length > 0) {
-        alert("❌ Ya hay una caja abierta para hoy.");
+        alertaInfo("Ya hay una caja abierta para hoy.");
         return;
       }
 
       if (!fondoInicial || fondoInicial <= 0) {
-        alert("Ingresa un fondo inicial válido");
+        alertaError("Ingresa un fondo inicial válido.");
         return;
       }
 
@@ -45,19 +50,19 @@ function AperturaDeCaja() {
 
       const { error } = await supabase.from("CorteCaja").insert({
         fecha: hoy,
-        hora_inicio: new Date().toLocaleTimeString('en-GB'),
+        hora_inicio: new Date().toLocaleTimeString("en-GB"),
         fondo_inicial: fondoInicial,
         estado: "abierta",
       });
 
       if (error) throw error;
 
-      alert("✅ Caja abierta correctamente");
+      await alertaExito("Caja abierta correctamente.");
       setCajaAbierta(true); // 🔹 Actualiza el contexto global
       navigate("/", { replace: true }); // Redirige al home
     } catch (error) {
       console.error("Error al abrir caja:", error.message);
-      alert("❌ Error al abrir la caja");
+      alertaError("Error al abrir la caja.");
     } finally {
       setIsSubmitting(false);
     }

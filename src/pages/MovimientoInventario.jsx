@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react";
 import Busqueda from "../components/Busqueda";
 import { supabase } from "../services/client";
-import "./movimientoInventario.css"; // Importación del CSS moderno
+import { useNavigate } from "react-router";
+import "./movimientoInventario.css";
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+} from "../utils/alerts"; // ✅ Importar tus alertas
 
 function MovimientoInventario() {
   const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
   const [productos, setProductos] = useState([]);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [tipoMovimiento, setTipoMovimiento] = useState("");
+
+  const navigate = useNavigate();
+
+  const ayuda = () => {
+    navigate("/ayuda#movimientosinv");
+  };
 
   useEffect(() => {
     const fetchProductos = async () => {
@@ -18,6 +30,10 @@ function MovimientoInventario() {
         )
         .order("id", { ascending: true });
       if (!error) setProductos(data);
+      else {
+        console.error("Error al obtener productos:", error);
+        alertaError("No se pudieron cargar los productos del inventario.");
+      }
     };
     fetchProductos();
   }, []);
@@ -28,11 +44,27 @@ function MovimientoInventario() {
   };
 
   const actualizarCantidad = (cantidad) => {
-    setProductoSeleccionado({ ...productoSeleccionado, cantidad: Number(cantidad) });
+    setProductoSeleccionado({
+      ...productoSeleccionado,
+      cantidad: Number(cantidad),
+    });
   };
 
   const actualizarStock = async () => {
-    if (!tipoMovimiento || !productoSeleccionado) return;
+    if (!tipoMovimiento) {
+      alertaInfo("Selecciona un tipo de movimiento (entrada o salida).");
+      return;
+    }
+
+    if (!productoSeleccionado) {
+      alertaInfo("Selecciona un producto para registrar el movimiento.");
+      return;
+    }
+
+    if (!productoSeleccionado.cantidad || productoSeleccionado.cantidad <= 0) {
+      alertaInfo("La cantidad debe ser mayor que 0.");
+      return;
+    }
 
     const ahora = new Date();
     const fechaSQL = ahora.toISOString().split("T")[0];
@@ -52,6 +84,7 @@ function MovimientoInventario() {
 
     if (movError) {
       console.error("Error al registrar el movimiento:", movError);
+      alertaError("Error al registrar el movimiento en la base de datos.");
       return;
     }
 
@@ -62,7 +95,11 @@ function MovimientoInventario() {
       .single();
 
     if (prodError) {
-      console.error(`Error al obtener el producto ${productoSeleccionado.id}:`, prodError);
+      console.error(
+        `Error al obtener el producto ${productoSeleccionado.id}:`,
+        prodError
+      );
+      alertaError("No se pudo obtener la información del producto.");
       return;
     }
 
@@ -81,7 +118,12 @@ function MovimientoInventario() {
       .eq("id", productoSeleccionado.id);
 
     if (updateError) {
-      console.error(`Error al actualizar el stock del producto ${productoSeleccionado.id}:`, updateError);
+      console.error(
+        `Error al actualizar el stock del producto ${productoSeleccionado.id}:`,
+        updateError
+      );
+      alertaError("Error al actualizar el stock del producto.");
+      return;
     }
 
     setProductos((prev) =>
@@ -92,6 +134,8 @@ function MovimientoInventario() {
 
     setProductoSeleccionado(null);
     setTipoMovimiento("");
+
+    alertaExito("Movimiento de inventario registrado correctamente.");
   };
 
   const abrirBusqueda = () => {
@@ -136,6 +180,7 @@ function MovimientoInventario() {
       <button className="mov-btn mov-btn-search" onClick={abrirBusqueda}>
         🔍 Buscar Producto
       </button>
+      <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
     </div>
 
     {/* Card producto seleccionado */}

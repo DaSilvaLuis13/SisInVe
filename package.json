@@ -21,15 +21,19 @@
     "file-saver": "^2.0.5",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "bootstrap": "^5.3.8",
+    "react": "^19.2.0",
+    "react-datepicker": "^8.8.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.9.5",
+    "react-router-dom": "^7.9.5",
+    "sweetalert2": "^11.26.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "vite": "^7.1.6",
+    "@vitejs/plugin-react": "^5.1.0",
     "electron": "^31.0.0",
-    "electron-builder": "^25.1.7"
+    "electron-builder": "^25.1.7",
+    "vite": "^7.1.6"
   },
   "build": {
     "appId": "com.sisinve.app",

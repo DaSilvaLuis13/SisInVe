@@ -1,7 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "../services/client";
 import "./clientes.css";
+import { alertaExito, alertaError, alertaInfo } from "../utils/alerts";
 
 function Clientes() {
   const [idCliente, setIdCliente] = useState(null);
@@ -13,12 +14,15 @@ function Clientes() {
   const [limiteCredito, setLimiteCredito] = useState("");
   const [errorTelefono, setErrorTelefono] = useState("");
 
+  const navigate = useNavigate();
   const location = useLocation();
+
+  const ayuda = () => navigate("/ayuda#registrar_cliente");
 
   // Validaciones
   const validarCampos = () => {
     if (!nombre || !aPaterno || !aMaterno || !domicilioCliente || !telefonoCliente) {
-      alert("Por favor llena todos los campos obligatorios");
+      alertaInfo("Por favor llena todos los campos obligatorios");
       return false;
     }
     return true;
@@ -50,13 +54,13 @@ function Clientes() {
 
       const tieneDeuda = data.some((item) => parseFloat(item.monto_que_pagar) > 0);
       if (tieneDeuda) {
-        alert("❌ No se puede editar el cliente mientras tenga deudas pendientes.");
+        alertaError("No se puede editar el cliente mientras tenga deudas pendientes.");
         return false;
       }
       return true;
     } catch (error) {
       console.error("Error verificando saldo del cliente:", error);
-      alert("Ocurrió un error al verificar el saldo del cliente.");
+      alertaError("Ocurrió un error al verificar el saldo del cliente.");
       return false;
     }
   };
@@ -78,7 +82,7 @@ function Clientes() {
     if (!validarTelefono(telefonoCliente)) return;
 
     try {
-      const { data, error } = await supabase.from("Clientes").insert({
+      const { error } = await supabase.from("Clientes").insert({
         nombres: nombre,
         apellido_paterno: aPaterno,
         apellido_materno: aMaterno,
@@ -90,16 +94,17 @@ function Clientes() {
       if (error) throw error;
 
       limpiarFormulario();
-      alert("✅ Cliente registrado correctamente");
+      alertaExito("Cliente registrado correctamente");
     } catch (error) {
-      console.error("❌ Error al crear cliente:", error);
+      console.error("Error al crear cliente:", error);
+      alertaError("Ocurrió un error al crear el cliente.");
     }
   };
 
   const actualizarCliente = async (e) => {
     e.preventDefault();
     if (!idCliente) {
-      alert("Primero selecciona un cliente para actualizar.");
+      alertaInfo("Primero selecciona un cliente para actualizar.");
       return;
     }
     if (!validarCampos()) return;
@@ -109,7 +114,7 @@ function Clientes() {
     if (!saldoCero) return;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("Clientes")
         .update({
           nombres: nombre,
@@ -124,13 +129,13 @@ function Clientes() {
       if (error) throw error;
 
       limpiarFormulario();
-      alert("✅ Cliente actualizado correctamente");
+      alertaExito("Cliente actualizado correctamente");
     } catch (error) {
-      console.error("❌ Error al actualizar cliente:", error);
+      console.error("Error al actualizar cliente:", error);
+      alertaError("Ocurrió un error al actualizar el cliente.");
     }
   };
 
-  // Cargar cliente si viene por edición
   useEffect(() => {
     if (location.state?.cliente) {
       const c = location.state.cliente;
@@ -144,6 +149,7 @@ function Clientes() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
 
   return (
   <div className="clientes-container d-flex justify-content-center py-5">
@@ -240,6 +246,7 @@ function Clientes() {
           >
             Cancelar
           </button>
+                <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
         </div>
       </form>
     </div>
