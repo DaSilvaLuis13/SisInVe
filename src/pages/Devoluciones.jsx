@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { supabase } from "../services/client";
 import Busqueda from "../components/Busqueda";
 import "./devoluciones.css";
+import {
+  alertaError,
+  alertaInfo,
+  alertaExito,
+  alertaConfirmacion,
+} from "../utils/alerts";
 
 function Devoluciones() {
   const [productos, setProductos] = useState([]);
@@ -17,7 +24,12 @@ function Devoluciones() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saldoCliente, setSaldoCliente] = useState(0);
 
-  // Fetch productos y clientes
+  const navigate = useNavigate();
+
+  const ayuda = () => {
+    navigate("/ayuda#registrar_devolucion");
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: prodData } = await supabase
@@ -47,20 +59,24 @@ function Devoluciones() {
         setCantidadMedida("");
         setPrecioMedida("");
       } else {
-        const existe = productosSeleccionados.find(p => p.id === item.id);
+        const existe = productosSeleccionados.find((p) => p.id === item.id);
         if (existe) {
-          setProductosSeleccionados(prev =>
-            prev.map(p => p.id === item.id ? { ...p, cantidad: p.cantidad + 1 } : p)
+          setProductosSeleccionados((prev) =>
+            prev.map((p) =>
+              p.id === item.id ? { ...p, cantidad: p.cantidad + 1 } : p
+            )
           );
         } else {
-          setProductosSeleccionados(prev => [...prev, { ...item, cantidad: 1 }]);
+          setProductosSeleccionados((prev) => [
+            ...prev,
+            { ...item, cantidad: 1 },
+          ]);
         }
       }
     } else if (tipoBusqueda === "cliente") {
       setSeleccion({ cliente: item });
       setTipoDevolucion("credito");
 
-      // Obtener saldo del cliente
       const { data: saldoData } = await supabase
         .from("SaldoCliente")
         .select("monto_que_pagar")
@@ -76,22 +92,30 @@ function Devoluciones() {
     const cantidad = parseFloat(cantidadMedida);
     const precio = parseFloat(precioMedida);
     if ((!isNaN(cantidad) && cantidad > 0) || (!isNaN(precio) && precio > 0)) {
-      setProductosSeleccionados(prev => {
-        const cantidadFinal = !isNaN(cantidad) && cantidad > 0
-          ? cantidad
-          : precio / productoMedida.precio_venta;
+      setProductosSeleccionados((prev) => {
+        const cantidadFinal =
+          !isNaN(cantidad) && cantidad > 0
+            ? cantidad
+            : precio / productoMedida.precio_venta;
 
-        const existeIndex = prev.findIndex(p => p.id === productoMedida.id);
+        const existeIndex = prev.findIndex((p) => p.id === productoMedida.id);
         if (existeIndex >= 0) {
           const actualizado = [...prev];
           actualizado[existeIndex] = {
             ...productoMedida,
             cantidad: cantidadFinal,
-            precio_venta: productoMedida.precio_venta
+            precio_venta: productoMedida.precio_venta,
           };
           return actualizado;
         } else {
-          return [...prev, { ...productoMedida, cantidad: cantidadFinal, precio_venta: productoMedida.precio_venta }];
+          return [
+            ...prev,
+            {
+              ...productoMedida,
+              cantidad: cantidadFinal,
+              precio_venta: productoMedida.precio_venta,
+            },
+          ];
         }
       });
       cerrarModalMedida();
@@ -110,14 +134,18 @@ function Devoluciones() {
       setCantidadMedida("");
       setPrecioMedida("");
     } else {
-      setProductosSeleccionados(prev =>
-        prev.map(p => p.id === producto.id ? { ...p, cantidad: Math.max(1, (p.cantidad || 1) + delta) } : p)
+      setProductosSeleccionados((prev) =>
+        prev.map((p) =>
+          p.id === producto.id
+            ? { ...p, cantidad: Math.max(1, (p.cantidad || 1) + delta) }
+            : p
+        )
       );
     }
   };
 
   const quitarProducto = (id) => {
-    setProductosSeleccionados(prev => prev.filter(p => p.id !== id));
+    setProductosSeleccionados((prev) => prev.filter((p) => p.id !== id));
   };
 
   const cancelarDevolucion = () => {
@@ -130,7 +158,10 @@ function Devoluciones() {
     setSaldoCliente(0);
   };
 
-  const total = productosSeleccionados.reduce((acc, p) => acc + p.precio_venta * p.cantidad, 0);
+  const total = productosSeleccionados.reduce(
+    (acc, p) => acc + p.precio_venta * p.cantidad,
+    0
+  );
 
   const generarTicketHTML = () => {
     let html = `<h3>Ticket de Devolución (${tipoDevolucion})</h3>`;
@@ -139,7 +170,7 @@ function Devoluciones() {
     }
     html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
     html += "<tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Subtotal</th></tr>";
-    productosSeleccionados.forEach(p => {
+    productosSeleccionados.forEach((p) => {
       html += `<tr>
         <td>${p.nombre}</td>
         <td>${p.cantidad}</td>
@@ -165,29 +196,32 @@ function Devoluciones() {
       printWindow.print();
       printWindow.close();
     } else {
-      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+      alertaError("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
     }
   };
 
   const registrarDevolucion = async () => {
-    if (productosSeleccionados.length === 0) return alert("Agrega al menos un producto.");
-    if (tipoDevolucion === "credito" && !seleccion.cliente) return alert("Selecciona un cliente para crédito.");
+    if (productosSeleccionados.length === 0)
+      return alertaInfo("Agrega al menos un producto.");
+    if (tipoDevolucion === "credito" && !seleccion.cliente)
+      return alertaInfo("Selecciona un cliente para crédito.");
 
     setIsSubmitting(true);
-    const fecha = new Date().toLocaleDateString('en-CA');
-    const hora = new Date().toLocaleTimeString('en-GB');
+    const fecha = new Date().toLocaleDateString("en-CA");
+    const hora = new Date().toLocaleTimeString("en-GB");
 
     try {
-      // Validación de saldo del cliente
       if (tipoDevolucion === "credito" && seleccion.cliente) {
         if (saldoCliente <= 0) {
-          alert("El cliente no tiene saldo pendiente. No se puede realizar la devolución.");
+          await alertaError("El cliente no tiene saldo pendiente. No se puede realizar la devolución.");
           setIsSubmitting(false);
           return;
         }
 
         if (total > saldoCliente) {
-          alert(`El monto a devolver (${total.toFixed(2)}) supera el saldo pendiente del cliente (${saldoCliente.toFixed(2)}).`);
+          await alertaError(
+            `El monto a devolver (${total.toFixed(2)}) supera el saldo pendiente del cliente (${saldoCliente.toFixed(2)}).`
+          );
           setIsSubmitting(false);
           return;
         }
@@ -201,7 +235,7 @@ function Devoluciones() {
         .limit(1);
 
       if (!corteData || corteData.length === 0) {
-        alert("No hay un corte de caja abierto para hoy.");
+        await alertaError("No hay un corte de caja abierto para hoy.");
         setIsSubmitting(false);
         return;
       }
@@ -214,7 +248,7 @@ function Devoluciones() {
         hora,
         dinero_devolver: total,
         id_corte: idCorte,
-        tipo_devolucion: tipoDevolucion
+        tipo_devolucion: tipoDevolucion,
       };
 
       if (tipoDevolucion === "credito" && seleccion.cliente) {
@@ -238,7 +272,10 @@ function Devoluciones() {
           subtotal: p.cantidad * p.precio_venta,
         });
 
-        await supabase.rpc("aumentar_stock", { producto_id: p.id, cantidad: p.cantidad });
+        await supabase.rpc("aumentar_stock", {
+          producto_id: p.id,
+          cantidad: p.cantidad,
+        });
       }
 
       if (tipoDevolucion === "credito" && seleccion.cliente) {
@@ -249,11 +286,15 @@ function Devoluciones() {
           .maybeSingle();
 
         if (saldoData) {
-          await supabase.from("SaldoCliente").update({
-            monto_que_pagar: Number(saldoData.monto_que_pagar || 0) - total,
-            fecha,
-            hora
-          }).eq("id", saldoData.id);
+          await supabase
+            .from("SaldoCliente")
+            .update({
+              monto_que_pagar:
+                Number(saldoData.monto_que_pagar || 0) - total,
+              fecha,
+              hora,
+            })
+            .eq("id", saldoData.id);
         }
       }
 
@@ -263,30 +304,32 @@ function Devoluciones() {
         .update({ devoluciones_total: nuevoDevolucionesTotal })
         .eq("id", idCorte);
 
-      alert("Devolución registrada correctamente.");
+      await alertaExito("Devolución registrada correctamente.");
       cancelarDevolucion();
     } catch (err) {
       console.error("Error al registrar devolución:", err);
-      alert("Ocurrió un error al procesar la devolución.");
+      await alertaError("Ocurrió un error al procesar la devolución.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleRegistrarClick = async () => {
-    const deseaTicket = window.confirm("¿Desea imprimir el ticket de la devolución?");
+    const deseaTicket = await alertaConfirmacion("¿Desea imprimir el ticket de la devolución?");
     if (deseaTicket) imprimirTicket();
     await registrarDevolucion();
   };
 
-  const botonDisabled = isSubmitting
+  const botonDisabled = isSubmitting;
 
   return (
     <div className="devoluciones-container my-4">
       <h2 className="devoluciones-card-title text-center mb-4">Registrar Devolución</h2>
-
+      <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
       <div className="devoluciones-card">
         <h5 className="devoluciones-card-title">Agregar productos</h5>
+                    
+
         <button className="btn-devoluciones-primary mb-3" onClick={() => abrirBusqueda("producto")}>
           Buscar producto
         </button>

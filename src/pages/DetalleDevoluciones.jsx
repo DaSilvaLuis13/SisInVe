@@ -1,8 +1,18 @@
+// src/pages/DetalleDevoluciones.jsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { supabase } from "../services/client";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./detalleDevolucion.css";
+
+// 🔔 Importamos las alertas personalizadas
+import {
+  alertaExito,
+  alertaError,
+  alertaInfo,
+  alertaConfirmacion,
+} from "../utils/alerts";
 
 function DetalleDevoluciones() {
   const [devoluciones, setDevoluciones] = useState([]);
@@ -16,7 +26,11 @@ function DetalleDevoluciones() {
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaFin, setFechaFin] = useState(null);
 
-  const hoy = new Date();
+  const navigate = useNavigate();
+
+  const ayuda = () => {
+    navigate("/ayuda#detalle_devolucion");
+  };
 
   const formatearFechaSupabase = (date) => {
     if (!date) return null;
@@ -42,19 +56,26 @@ function DetalleDevoluciones() {
       const { data: devolucionesData, error } = await query;
       if (error) {
         console.error("Error cargando devoluciones:", error);
+        alertaError("Error al cargar las devoluciones.");
+        return;
+      }
+
+      if (!devolucionesData || devolucionesData.length === 0) {
+        alertaInfo("No se encontraron devoluciones con los filtros aplicados.");
+        setDevoluciones([]);
         return;
       }
 
       // Traer clientes
-      const clientesIds = devolucionesData.map(d => d.id_cliente).filter(Boolean);
+      const clientesIds = devolucionesData.map((d) => d.id_cliente).filter(Boolean);
       const { data: clientesData } = await supabase
         .from("Clientes")
         .select("id, nombres, apellido_paterno, apellido_materno")
         .in("id", clientesIds);
 
-      const devolucionesConClientes = devolucionesData.map(d => ({
+      const devolucionesConClientes = devolucionesData.map((d) => ({
         ...d,
-        cliente: clientesData.find(c => c.id === d.id_cliente) || null
+        cliente: clientesData.find((c) => c.id === d.id_cliente) || null,
       }));
 
       setDevoluciones(devolucionesConClientes);
@@ -63,31 +84,36 @@ function DetalleDevoluciones() {
     fetchDevoluciones();
   }, [filtroId, filtroTipoDevolucion, fechaInicio, fechaFin]);
 
-  // Cargar detalle
+  // Cargar detalle de devolución seleccionada
   useEffect(() => {
     if (!devolucionSeleccionada) return;
+
     const fetchDetalle = async () => {
       const { data: detalleData, error } = await supabase
         .from("DetalleDevolucion")
         .select("id, id_devolucion, id_producto, cantidad, precio_unitario, subtotal")
         .eq("id_devolucion", devolucionSeleccionada.id);
+
       if (error) {
         console.error("Error cargando detalle:", error);
+        alertaError("Error al cargar el detalle de la devolución.");
         return;
       }
 
-      const productosIds = detalleData.map(d => d.id_producto).filter(Boolean);
+      const productosIds = detalleData.map((d) => d.id_producto).filter(Boolean);
       const { data: productosData } = await supabase
         .from("Productos")
         .select("id, nombre")
         .in("id", productosIds);
 
-      const detalleConProductos = detalleData.map(d => ({
+      const detalleConProductos = detalleData.map((d) => ({
         ...d,
-        producto: productosData.find(p => p.id === d.id_producto) || { nombre: "-" }
+        producto: productosData.find((p) => p.id === d.id_producto) || { nombre: "-" },
       }));
+
       setDetalle(detalleConProductos);
     };
+
     fetchDetalle();
   }, [devolucionSeleccionada]);
 
@@ -101,41 +127,61 @@ function DetalleDevoluciones() {
   });
 
   // Función para imprimir ticket
-  const imprimirDevolucionSeleccionada = () => {
-    if (!devolucionSeleccionada) return alert("No hay devolución seleccionada");
-
-    let html = `<h3>Supermercado X - Devolución #${devolucionSeleccionada.id}</h3>`;
-    html += `<p>Fecha: ${devolucionSeleccionada.fecha} | Hora: ${devolucionSeleccionada.hora}</p>`;
-    if (devolucionSeleccionada.cliente) {
-      html += `<p>Cliente: ${devolucionSeleccionada.cliente.nombres} ${devolucionSeleccionada.cliente.apellido_paterno}</p>`;
+  const imprimirDevolucionSeleccionada = async () => {
+    if (!devolucionSeleccionada) {
+      alertaInfo("Selecciona una devolución para imprimir.");
+      return;
     }
-    html += `<p>Tipo: ${devolucionSeleccionada.tipo_devolucion}</p>`;
-    html += "<hr/>";
-    html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
-    html += "<tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th></tr>";
-    detalle.forEach(d => {
-      html += `<tr>
-        <td>${d.producto?.nombre || "-"}</td>
-        <td>${d.cantidad}</td>
-        <td>${d.precio_unitario}</td>
-        <td>${d.subtotal}</td>
-      </tr>`;
-    });
-    html += `</table>`;
-    html += `<p>Total a devolver: ${devolucionSeleccionada.dinero_devolver}</p>`;
-    html += `<p>Gracias por su preferencia</p>`;
 
-    const printWindow = window.open("", "PRINT", "height=600,width=400");
-    if (printWindow) {
-      printWindow.document.write("<html><head><title>Ticket Devolución</title></head><body>");
-      printWindow.document.write(html);
-      printWindow.document.write("</body></html>");
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    } else {
-      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+    const confirmar = await alertaConfirmacion(
+      `¿Deseas imprimir el ticket de la devolución #${devolucionSeleccionada.id}?`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      let html = `<h3>Supermercado X - Devolución #${devolucionSeleccionada.id}</h3>`;
+      html += `<p>Fecha: ${devolucionSeleccionada.fecha} | Hora: ${devolucionSeleccionada.hora}</p>`;
+
+      if (devolucionSeleccionada.cliente) {
+        html += `<p>Cliente: ${devolucionSeleccionada.cliente.nombres} ${devolucionSeleccionada.cliente.apellido_paterno}</p>`;
+      }
+
+      html += `<p>Tipo: ${devolucionSeleccionada.tipo_devolucion}</p>`;
+      html += "<hr/>";
+      html += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%'>";
+      html += "<tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th></tr>";
+
+      detalle.forEach((d) => {
+        html += `<tr>
+          <td>${d.producto?.nombre || "-"}</td>
+          <td>${d.cantidad}</td>
+          <td>${d.precio_unitario}</td>
+          <td>${d.subtotal}</td>
+        </tr>`;
+      });
+
+      html += `</table>`;
+      html += `<p>Total a devolver: ${devolucionSeleccionada.dinero_devolver}</p>`;
+      html += `<p>Gracias por su preferencia</p>`;
+
+      const printWindow = window.open("", "PRINT", "height=600,width=400");
+      if (printWindow) {
+        printWindow.document.write("<html><head><title>Ticket Devolución</title></head><body>");
+        printWindow.document.write(html);
+        printWindow.document.write("</body></html>");
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+
+        alertaExito("Ticket impreso correctamente.");
+      } else {
+        alertaError("No se pudo abrir la ventana de impresión. Verifica tu bloqueador de pop-ups.");
+      }
+    } catch (err) {
+      console.error("Error al imprimir devolución:", err);
+      alertaError("Ocurrió un error al generar el ticket de devolución.");
     }
   };
 
@@ -143,6 +189,7 @@ function DetalleDevoluciones() {
     <div className="devoluciones-container py-4">
       <div className="container">
         <h2 className="devoluciones-title mb-4 text-center fw-bold">📄 Detalle de Devoluciones</h2>
+        <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
 
         {/* Filtros */}
         <div className="card devoluciones-filtros-card shadow-sm mb-4 p-3">

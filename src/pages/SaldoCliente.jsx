@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { supabase } from "../services/client";
-import './saldoCliente.css'; // Importa el CSS propio
+import './saldoCliente.css';
+import { alertaExito, alertaError, alertaInfo } from '../utils/alerts';
 
 function SaldoCliente() {
   const [clientes, setClientes] = useState([]);
@@ -12,6 +14,12 @@ function SaldoCliente() {
   const [idCorte, setIdCorte] = useState(null);
   const [corteActual, setCorteActual] = useState(null);
 
+  const navigate = useNavigate();
+  
+  const ayuda = () => {
+    navigate('/ayuda#saldo_cliente');
+  };
+
   // Obtener clientes
   useEffect(() => {
     const fetchClientes = async () => {
@@ -20,6 +28,7 @@ function SaldoCliente() {
         .select("id, nombres, apellido_paterno, apellido_materno, limite_credito")
         .order('id', { ascending: true });
       if (!error) setClientes(data);
+      else alertaError("Error al cargar los clientes.");
     };
     fetchClientes();
   }, []);
@@ -36,7 +45,7 @@ function SaldoCliente() {
       if (!error && data) {
         setIdCorte(data.id);
         setCorteActual(data);
-      }
+      } else alertaError("No se pudo obtener el último corte de caja.");
     };
     fetchUltimoCorte();
   }, []);
@@ -54,7 +63,7 @@ function SaldoCliente() {
       if (!error) {
         if (data.length === 0) setSaldoCliente({ fecha: null, hora: null, monto_que_pagar: 0 });
         else setSaldoCliente(data[0]);
-      }
+      } else alertaError("Error al cargar el saldo del cliente.");
     };
 
     const fetchCompraReciente = async () => {
@@ -67,6 +76,7 @@ function SaldoCliente() {
         .order("hora", { ascending: false })
         .limit(1);
       if (!error) setCompraReciente(data.length ? data[0] : null);
+      else alertaError("Error al obtener la última compra del cliente.");
     };
 
     fetchSaldo();
@@ -81,18 +91,18 @@ function SaldoCliente() {
 
   const abonarCliente = async () => {
     if (!montoAbono || !clienteSeleccionado || !idCorte) {
-      alert("Completa todos los campos necesarios.");
+      alertaInfo("Completa todos los campos necesarios.");
       return;
     }
 
     if (saldoCliente.monto_que_pagar <= 0) {
-      alert("El cliente no tiene deuda pendiente.");
+      alertaInfo("El cliente no tiene deuda pendiente.");
       return;
     }
 
     const montoFloat = parseFloat(montoAbono);
     if (montoFloat > saldoCliente.monto_que_pagar) {
-      alert(`El monto a abonar no puede ser mayor a la deuda (${saldoCliente.monto_que_pagar.toFixed(2)})`);
+      alertaError(`El monto a abonar no puede ser mayor a la deuda (${saldoCliente.monto_que_pagar.toFixed(2)})`);
       return;
     }
 
@@ -126,16 +136,19 @@ function SaldoCliente() {
       setSaldoCliente(prev => ({ ...prev, monto_que_pagar: nuevoMonto, fecha, hora }));
       setCorteActual(nuevosTotales);
       setMontoAbono('');
-      alert("Abono registrado correctamente.");
+
+      alertaExito("Abono registrado correctamente.");
     } catch (error) {
       console.error("Error al registrar abono:", error);
-      alert("No se pudo registrar el abono.");
+      alertaError("No se pudo registrar el abono.");
     }
   };
 
   return (
     <div className="container-saldo">
       <h2 className="title-saldo">Saldo de Clientes</h2>
+      <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
+
 
       <input
         type="text"

@@ -3,7 +3,7 @@ import Busqueda from "../components/Busqueda";
 import { supabase } from "../services/client";
 import "./ventas.css";
 import { useNavigate } from "react-router-dom";
-
+import { alertaExito, alertaError, alertaInfo, alertaConfirmacion } from "../utils/alerts";
 
 function Venta() {
   const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
@@ -12,13 +12,15 @@ function Venta() {
   const [clientes, setClientes] = useState([]);
   const [productos, setProductos] = useState([]);
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
-  const navigate = useNavigate();
-
-
   const [productoMedida, setProductoMedida] = useState(null);
   const [cantidadMedida, setCantidadMedida] = useState("");
   const [precioMedida, setPrecioMedida] = useState("");
   const [tipoPago, setTipoPago] = useState("");
+  const navigate = useNavigate();
+  
+  const ayuda = () => {
+    navigate("/ayuda#registrar_venta");
+  };
 
   useEffect(() => {
     const fetchProductos = async () => {
@@ -27,6 +29,7 @@ function Venta() {
         .select("id, codigo_barras, nombre, unidad_medida, precio_venta, stock_actual, stock_minimo")
         .order("id", { ascending: true });
       if (!error) setProductos(data);
+      else alertaError("Error al cargar los productos.");
     };
     fetchProductos();
   }, []);
@@ -38,6 +41,7 @@ function Venta() {
         .select("id, nombres, apellido_paterno, apellido_materno, limite_credito")
         .order("id", { ascending: true });
       if (!error) setClientes(data);
+      else alertaError("Error al cargar los clientes.");
     };
     fetchClientes();
   }, []);
@@ -49,7 +53,6 @@ function Venta() {
 
   const manejarSeleccion = async (item) => {
     if (tipoBusqueda === "producto") {
-      // Traer stock_actual y stock_minimo
       const { data: productoData, error } = await supabase
         .from("Productos")
         .select("id, nombre, unidad_medida, precio_venta, stock_actual, stock_minimo")
@@ -57,20 +60,18 @@ function Venta() {
         .single();
 
       if (error || !productoData) {
-        alert("Error al obtener información del producto.");
+        alertaError("Error al obtener información del producto.");
         return;
       }
 
       if (productoData.stock_actual <= 0) {
-        alert(
-          `⚠️ El producto "${productoData.nombre}" no tiene stock disponible.`
-        );
+        alertaError(`El producto "${productoData.nombre}" no tiene stock disponible.`);
         return;
       }
 
       if (productoData.stock_actual <= productoData.stock_minimo) {
-        alert(
-          `⚠️ El producto "${productoData.nombre}" tiene un stock bajo (${productoData.stock_actual}).\nRecomendación: reponer pronto.`
+        alertaInfo(
+          `El producto "${productoData.nombre}" tiene un stock bajo (${productoData.stock_actual}).`
         );
       }
 
@@ -105,7 +106,8 @@ function Venta() {
     const precio = parseFloat(precioMedida);
     if ((!isNaN(cantidad) && cantidad > 0) || (!isNaN(precio) && precio > 0)) {
       setProductosSeleccionados((prev) => {
-        const cantidadFinal = !isNaN(cantidad) && cantidad > 0 ? cantidad : precio / productoMedida.precio_venta;
+        const cantidadFinal =
+          !isNaN(cantidad) && cantidad > 0 ? cantidad : precio / productoMedida.precio_venta;
         const existenteIndex = prev.findIndex((p) => p.id === productoMedida.id);
 
         if (existenteIndex >= 0) {
@@ -117,7 +119,10 @@ function Venta() {
           };
           return actualizado;
         } else {
-          return [...prev, { ...productoMedida, cantidad: cantidadFinal, precio_venta: productoMedida.precio_venta }];
+          return [
+            ...prev,
+            { ...productoMedida, cantidad: cantidadFinal, precio_venta: productoMedida.precio_venta },
+          ];
         }
       });
       cerrarModalMedida();
@@ -206,25 +211,25 @@ function Venta() {
       printWindow.print();
       printWindow.close();
     } else {
-      alert("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
+      alertaError("No se pudo abrir la ventana de impresión. Revisa tu bloqueador de pop-ups.");
     }
   };
 
   const handleCobrarClick = async () => {
     if (productosSeleccionados.length === 0) {
-      alert("Debes agregar productos");
+      alertaInfo("Debes agregar productos.");
       return;
     }
     if (!tipoPago) {
-      alert("Debes seleccionar un tipo de pago");
+      alertaInfo("Debes seleccionar un tipo de pago.");
       return;
     }
     if (tipoPago === "Crédito" && !seleccion.cliente) {
-      alert("Debes seleccionar un cliente para crédito");
+      alertaInfo("Debes seleccionar un cliente para crédito.");
       return;
     }
 
-    const deseaTicket = window.confirm("¿Desea imprimir el ticket antes de cobrar?");
+    const deseaTicket = await alertaConfirmacion("¿Desea imprimir el ticket antes de cobrar?");
     if (deseaTicket) imprimirTicket();
 
     await cobrarVenta();
@@ -232,7 +237,6 @@ function Venta() {
 
   const cobrarVenta = async () => {
     try {
-      // Validación de stock antes de cobrar
       for (let p of productosSeleccionados) {
         const { data: prod } = await supabase
           .from("Productos")
@@ -242,28 +246,24 @@ function Venta() {
 
         if (prod) {
           if (prod.stock_actual <= 0) {
-                        alert(`🚫 El producto "${prod.nombre}" no tiene stock disponible. No se puede procesar la venta.`);
-
-           // window.location.href = "/movimiento-inventario";
+            alertaError(`El producto "${prod.nombre}" no tiene stock disponible.`);
             return;
           }
 
           if (prod.stock_actual <= prod.stock_minimo) {
-            alert(`⚠️ El producto "${prod.nombre}" está por debajo del stock mínimo (${prod.stock_actual}).`);
+            alertaInfo(`El producto "${prod.nombre}" está por debajo del stock mínimo (${prod.stock_actual}).`);
           }
 
           if (prod.stock_actual < p.cantidad) {
-            alert(
-              `🚫 No hay suficiente stock de "${prod.nombre}". Disponible: ${prod.stock_actual}, solicitado: ${p.cantidad}.`
-            );
+            alertaError(`No hay suficiente stock de "${prod.nombre}". Disponible: ${prod.stock_actual}, solicitado: ${p.cantidad}.`);
             return;
           }
         }
       }
 
       const ahora = new Date();
-      const fechaSQL = ahora.toLocaleDateString('en-CA');
-      const horaSQL = ahora.toLocaleTimeString('en-GB');
+      const fechaSQL = ahora.toLocaleDateString("en-CA");
+      const horaSQL = ahora.toLocaleTimeString("en-GB");
 
       const { data: corteData } = await supabase
         .from("CorteCaja")
@@ -273,7 +273,7 @@ function Venta() {
         .limit(1);
 
       if (!corteData || corteData.length === 0) {
-        alert("No hay un corte de caja abierto para hoy.");
+        alertaError("No hay un corte de caja abierto para hoy.");
         return;
       }
 
@@ -281,8 +281,6 @@ function Venta() {
 
       if (tipoPago === "Crédito" && seleccion.cliente) {
         const idCliente = seleccion.cliente.id;
-
-        // Obtener saldo actual y límite
         const { data: saldoData } = await supabase
           .from("SaldoCliente")
           .select("monto_que_pagar")
@@ -294,11 +292,13 @@ function Venta() {
         const nuevoSaldo = saldoActual + total;
 
         if (limite > 0 && nuevoSaldo > limite) {
-          alert(`🚫 El cliente ha alcanzado su límite de crédito.
-      Saldo actual: $${saldoActual.toFixed(2)}
-      Límite permitido: $${limite.toFixed(2)}
-      Esta venta ($${total.toFixed(2)}) excedería su límite.`);
-          return; // ❌ Detiene la venta
+          alertaError(
+            `El cliente ha alcanzado su límite de crédito.
+Saldo actual: $${saldoActual.toFixed(2)}
+Límite permitido: $${limite.toFixed(2)}
+Esta venta ($${total.toFixed(2)}) excedería su límite.`
+          );
+          return;
         }
       }
 
@@ -327,7 +327,6 @@ function Venta() {
 
       await supabase.from("DetalleVenta").insert(detalles);
 
-      // Movimientos inventario
       const movimientos = productosSeleccionados.map((p) => ({
         id_producto: p.id,
         fecha: fechaSQL,
@@ -337,7 +336,6 @@ function Venta() {
       }));
       await supabase.from("MovimientosInventario").insert(movimientos);
 
-      // Actualizar stock
       for (let p of productosSeleccionados) {
         const { data: productoActual } = await supabase
           .from("Productos")
@@ -347,11 +345,13 @@ function Venta() {
 
         if (productoActual && productoActual.stock_actual !== null) {
           const nuevoStock = productoActual.stock_actual - p.cantidad;
-          await supabase.from("Productos").update({ stock_actual: nuevoStock }).eq("id", p.id);
+          await supabase
+            .from("Productos")
+            .update({ stock_actual: nuevoStock })
+            .eq("id", p.id);
         }
       }
 
-      // Actualizar saldo cliente
       if (tipoPago === "Crédito" && seleccion.cliente) {
         const { data: saldoData } = await supabase
           .from("SaldoCliente")
@@ -360,11 +360,14 @@ function Venta() {
           .maybeSingle();
 
         if (saldoData) {
-          await supabase.from("SaldoCliente").update({
-            monto_que_pagar: Number(saldoData.monto_que_pagar || 0) + total,
-            fecha: fechaSQL,
-            hora: horaSQL,
-          }).eq("id", saldoData.id);
+          await supabase
+            .from("SaldoCliente")
+            .update({
+              monto_que_pagar: Number(saldoData.monto_que_pagar || 0) + total,
+              fecha: fechaSQL,
+              hora: horaSQL,
+            })
+            .eq("id", saldoData.id);
         } else {
           await supabase.from("SaldoCliente").insert({
             id_cliente: seleccion.cliente.id,
@@ -375,30 +378,35 @@ function Venta() {
         }
       }
 
-      // Actualizar corte de caja
       let nuevoVentasTotal = corteData[0].ventas_total || 0;
       let nuevoFiadoTotal = corteData[0].fiado_total || 0;
       if (tipoPago === "Crédito") nuevoFiadoTotal += total;
       else nuevoVentasTotal += total;
 
-      await supabase.from("CorteCaja").update({
-        ventas_total: nuevoVentasTotal,
-        fiado_total: nuevoFiadoTotal,
-      }).eq("id", idCorte);
+      await supabase
+        .from("CorteCaja")
+        .update({
+          ventas_total: nuevoVentasTotal,
+          fiado_total: nuevoFiadoTotal,
+        })
+        .eq("id", idCorte);
 
       cancelarVenta();
-      alert("Venta registrada correctamente.");
+      alertaExito("Venta registrada correctamente.");
     } catch (error) {
       console.error("Error al cobrar la venta:", error);
-      alert("Ocurrió un error al procesar la venta.");
+      alertaError("Ocurrió un error al procesar la venta.");
     }
   };
 
   return (
     <div className="ventas-container my-4">
       <h2 className="text-center mb-4">Registrar Venta</h2>
+                          <button type="button" className="btn-ac" onClick={ayuda}>Ayuda</button>
+
       <div className="ventas-card">
         <h5 className="ventas-card-title">Agregar productos</h5>
+
         <button className="btn-ventas-primary mb-3" onClick={() => abrirBusqueda("producto")}>
           Buscar producto
         </button>

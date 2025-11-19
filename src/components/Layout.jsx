@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useCaja } from "../context/CajaContext";
 import AperturaDeCaja from "../pages/AperturaDeCaja";
+import logo from "../assets/img/LogoSisInVe.jpg"
 import "./layout.css";
 
 function Layout() {
@@ -104,7 +105,7 @@ function Layout() {
       >
         <div className="sisInVe text-center mb-3">
           <img
-            src="/LogoSisInVe.jpg"
+            src= {logo}
             alt="SisInVe Logo"
             style={{ width: "120px", height: "120px", margin: "10px auto" }}
           />
